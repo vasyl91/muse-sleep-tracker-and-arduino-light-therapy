@@ -80,13 +80,14 @@ Paste `nights` from `charts` to `SleepTracker` folder on your phone.
 ## Arduino Light Therapy blueprints
 
 To build it you will need:
-	* Arduino Nano V3 ATMega328P
-	* HC-05 Bluetooth Module
-	* 3,7V battery
-	* 2x LED
-	* 2x 330 ohm resistor
-	* ON/OFF switch
-	* and obviously some wires
+
+* Arduino Nano V3 ATMega328P
+* HC-05 Bluetooth Module
+* 3,7V battery
+* 2x LED
+* 2x 330 ohm resistor
+* ON/OFF switch
+* and obviously some wires
 
 You can find the scheme in the light_therapy folder.
 
