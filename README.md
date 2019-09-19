@@ -6,7 +6,7 @@ It contains some interesting modules such as library that allows to read CSV fil
 
 So far I managed to trigger an alarm with alpha waves (closing eyes for more than 10s should do the job) BUT the frequency might vary for each of us so it's not foolproof. Install apk file and check it yourself ;) If it doesn't work, try to change `trackerScore` to your value in `night-tracker.js` or/and `power-nap.js` (which are basically very similar).
 
-I cleaned uploaded project as much as I could. Here is the version with all node_modules in case you have some problems to install them [CLICK](https://drive.google.com/file/d/1kYRd-EMWxpUvadm74EFVTqwUpeBrm4lB/view?usp=sharing).
+I cleaned uploaded project as much as I could. Here is the version with all `node_modules` in case you have some problems to install them [CLICK](https://drive.google.com/file/d/1kYRd-EMWxpUvadm74EFVTqwUpeBrm4lB/view?usp=sharing).
 
 ## Overview
 
@@ -18,7 +18,8 @@ Sleep Tracker is divided into Online and Offline Mode.
 Online Mode - requires Muse headband and contains five sections:
 * Sleep Tracker - tracks your night sleep and aims to wake you up in the lightest sleep stage shortly before desired wake up time.
 * Power Nap - tracks your nap, detects lightests sleep stage and wakes you up.
-Both of them provide optional Light Therapy depending on users choices.
+
+	Both of them provide optional Light Therapy depending on users choices.
 * EEG sandbox - realtime EEG graph that originally comes from EEG 101.
 * Info & Tools - EEG recorder, some basic info and Light Therapy LED test button.
 * Charts 
@@ -31,7 +32,7 @@ Offline Mode - doesn't require Muse headband and contains three sections:
 Light Therapy module is not necessary to use the app. Can be used as an addon to the tracker or Alarm clock. If it's on - the green light bulb icon appears near the menu button.
 Charts section is common for both modes and depicts graphs based on five last users EEG records.
 
-## How it works
+## How it works (assumed principles of operation)
 
 * Sleep Tracker: 
 
@@ -43,7 +44,7 @@ Charts section is common for both modes and depicts graphs based on five last us
 	
 * Power Nap:
 
-	- uses Sleep Trackers EEG records to estimate and detect second sleep stage.
+	- uses Sleep Tracker's EEG records to estimate and detect second sleep stage.
 	
 	- wakes you up before the deep sleep stage.
 
