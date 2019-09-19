@@ -67,8 +67,8 @@ Sleep Tracker and Power Nap use only frontal electrodes, because it's significan
 
 1. Install and setup [React Native](https://facebook.github.io/react-native/docs/getting-started.html). Note: Sleep Tracker uses lots of native code, so create-react-native-app and Expo are not an option. Follow the instructions for "Building Apps with Native Code." You may also need to install the [JDK](https://www3.ntu.edu.sg/home/ehchua/programming/howto/JDK_Howto.html), [Node](https://nodejs.org/en/download/package-manager/), [Watchman](https://medium.com/@vonchristian/how-to-setup-watchman-on-ubuntu-16-04-53196cc0227c), and the [Gradle Daemon](https://docs.gradle.org/2.9/userguide/gradle_daemon.html) as well.
 2. Install [yarn](https://github.com/yarnpkg/yarn).
-3. Clone this repo `git clone https://github.com/vasyl91/sleep-tracker.git` or download zip and extract it.
-4. Open terminal in the `sleep-tracker-master` folder and run `yarn install`. 
+3. Clone this repo `git clone https://github.com/vasyl91/muse-sleep-tracker-and-arduino-light-therapy.git` or download zip and extract it.
+4. Open terminal in the `muse-sleep-tracker-and-arduino-light-therapy-master` folder and run `yarn install`. 
 5. Connect an Android device with USB debug mode enabled. Because the LibMuse library depends on an ARM architecture, emulators are not an option.
 6. Run `react-native start` to start React packager.
 7. In new terminal, run `adb reverse tcp:8081 tcp:8081` to ensure debug server is connected to your device and then `react-native run-android` to install Sleep Tracker.
