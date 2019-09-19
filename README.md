@@ -16,17 +16,17 @@ It also contains Light Therapy module based on Arduino.
 Sleep Tracker is divided into Online and Offline Mode. 
 
 Online Mode - requires Muse headband and contains five sections:
-    * Sleep Tracker - tracks your night sleep and aims to wake you up in the lightest sleep stage shortly before desired wake up time.
-    * Power Nap - tracks your nap, detects lightests sleep stage and wakes you up.
-    	Both of them provide optional Light Therapy depending on users choices.
-    * EEG sandbox - realtime EEG graph that originally comes from EEG 101.
-    * Info & Tools - EEG recorder, some basic info and Light Therapy LED test button.
-	* Charts 
+* Sleep Tracker - tracks your night sleep and aims to wake you up in the lightest sleep stage shortly before desired wake up time.
+* Power Nap - tracks your nap, detects lightests sleep stage and wakes you up.
+Both of them provide optional Light Therapy depending on users choices.
+* EEG sandbox - realtime EEG graph that originally comes from EEG 101.
+* Info & Tools - EEG recorder, some basic info and Light Therapy LED test button.
+* Charts 
 
 Offline Mode - doesn't require Muse headband and contains three sections:
-	* Alarm Clock - functional alarm clock that can be connected with Light Therapy.
-	* Info & Tools - some basic info and Light Therapy LED test button.  
-	* Charts 
+* Alarm Clock - functional alarm clock that can be connected with Light Therapy.
+* Info & Tools - some basic info and Light Therapy LED test button.  
+* Charts 
 
 Light Therapy module is not necessary to use the app. Can be used as an addon to the tracker or Alarm clock. If it's on - the green light bulb icon appears near the menu button.
 Charts section is common for both modes and depicts graphs based on five last users EEG records.
