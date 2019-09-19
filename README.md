@@ -57,7 +57,7 @@ Sleep Tracker and Power Nap use only frontal electrodes, because it's significan
 ## To do
 
 * This is let's say aplha version, so it's more than likely that many things require improvements.
-* Remove bug that terminates app after pressing `OK, IT'S ON` while bluetooth is already enabled (works when bt is disabled)
+* Remove bug that terminates app after pressing `OK, IT'S ON` while bluetooth is already enabled (works when bt is disabled and occures only on released apk, debug apk works fine)
 * Finish and correct translations (German especially)/typos etc.
 * Update to newest RN version.
 * Clean some mess in CSVGraph.java packages and finish this section.
