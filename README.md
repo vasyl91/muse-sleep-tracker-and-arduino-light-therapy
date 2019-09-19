@@ -1,8 +1,11 @@
 # Muse Sleep Tracker + Arduino Light Therapy (EN/PL/DE) RN 0.57.8 
 
 After more than half of the year of inactivity I finally found some time and motivation to make some tweaks and upload app I've been working on. Sadly it's not finished yet and to be honest I don't know when I will start to continue development.
+
 It contains some interesting modules such as library that allows to read CSV files and display as interactive graphs (not fully finished), reworked alarms module and many others. You can use it for free as long as it's not commercial.
+
 So far I managed to trigger an alarm with alpha waves (closing eyes for more than 10s should do the job) BUT the frequency might vary for each of us so it's not foolproof. Install apk file and check it yourself ;) If it doesn't work, try to change `trackerScore` to your value in `night-tracker.js` or/and `power-nap.js` (which are basically very similar).
+
 I cleaned uploaded project as much as I could. Here is the version with all node_modules in case you have some problems to install them [CLICK](https://drive.google.com/file/d/1kYRd-EMWxpUvadm74EFVTqwUpeBrm4lB/view?usp=sharing).
 
 ## Overview
