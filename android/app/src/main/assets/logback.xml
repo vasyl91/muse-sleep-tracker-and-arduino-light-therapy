@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>
+                %d{dd-MM-yyyy HH:mm:ss.SSS} %-5level [%thread] %logger - %msg%n
+            </Pattern>
+        </layout>
+    </appender>
+    <appender name="FILE-APPENDER" class="ch.qos.logback.core.FileAppender">
+        <file>/data/data/com.sleep_tracker/files/log/data.csv</file>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>
+                %msg%n
+            </Pattern>
+        </encoder>
+    </appender>
+    <logger name="com.sleep_tracker.components.classifier.ClassifierModule" level="INFO" additivity="false">
+        <appender-ref ref="FILE-APPENDER" />
+    </logger>
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

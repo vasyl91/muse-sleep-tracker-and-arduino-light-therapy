@@ -1,0 +1,2 @@
+configurations.maybeCreate("default")
+artifacts.add("default", file('logback-android-1.1.1-13.aar'))

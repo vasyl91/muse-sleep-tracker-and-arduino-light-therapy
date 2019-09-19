@@ -1,0 +1,20 @@
+{
+  "name": "SleepTracker",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "run-android-dev": "adb reverse tcp:8081 tcp:8081 && react-native run-android"
+  },
+  "dependencies": {
+    "lodash": "^4.17.11",
+    "react": "16.6.0-alpha.8af6728",
+    "react-native": "0.57.8",
+    "react-native-router-flux": "^3.35.0",
+    "react-native-swiper": "1.4.6",
+    "react-redux": "^6.0.0",
+    "react-native-svg": "latest",
+    "redux": "^4.0.1",
+    "redux-thunk": "^2.1.0"
+  }
+}
