@@ -60,7 +60,6 @@ Sleep Tracker and Power Nap use only frontal electrodes, because it's significan
 * Remove bug that terminates app after pressing `OK, IT'S ON` while bluetooth is already enabled (works when bt is disabled and occures only on released apk, debug apk works fine)
 * Finish and correct translations (German especially)/typos etc.
 * Update to newest RN version.
-* Clean some mess in CSVGraph.java packages and finish this section.
 * Buttons under `List of paired devices:` have to be adjustable to the length of paired device's names (see screenshot)
 
 ## Setup
