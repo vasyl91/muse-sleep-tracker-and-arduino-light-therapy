@@ -1,4 +1,4 @@
-export default { 
+lightConnectedexport default { 
 
 	//global
 	nextLink:  'WEITER',
@@ -22,6 +22,7 @@ export default {
 	statusConnecting:  'Verbindung wird hergestellt…',
 	btDisabled:  'Bluetooth ist deaktiviert',
     btQuestion:  'Möchten Sie Bluetooth aktivieren?',
+    enableBT:  'Turn on Bluetooth',
     yes: 'JA',
     no: 'NEIN',
     hour:  ' Stunde',
@@ -37,6 +38,7 @@ export default {
     track:  'TRACK',
     tracking:  ' Tracking',
     snooze: 'Schlummern',
+    illuminationTime: 'Illumination time: ',
 
 	//begin-landing.js
 	welcomeSleepTracker:  'Wilkommen zu',
@@ -59,15 +61,16 @@ export default {
 	waitMusePair:  'Bitte warte, bis dein Muse mit \n EEG 101 gepaart wird…',
 	proceed: 'Connected! \n Proceed to Sleep Tracker',
 
-	//light-therapy.js
+	//bt-module.js
 	connectedTo:  'Verbindung zum:',
 	notConnected:  'Nicht verbunden',
 	done:  'Erledigt',
-	devicesList:  'Liste der gekoppelten Geräte:',
-	refresh:  'Refresh',
+	devicesList:  'Liste gekoppelter Geräte',
+	btList:  'Paired devices:',
 	alreadyConnected:  'Schon verbunden.',
 	unableToConnect:  'Es kann keine Verbindung zu diesem Gerät hergestellt werden.',
-
+	testButton:  'Test LED',
+	setLightIntensity:  'Light intensity:',
 
 	//nap-night-tracker.js
 	sleepTrackerTitle:  'SLEEP TRACKER',
@@ -93,12 +96,9 @@ export default {
 
 	//info.js / info-offline.js
 	infoTitle:  'INFORMATION und WERKZEUGE',
-	offlineTitle:  'OFFLINE INFORMATION und WERKZEUGE',
+	offlineTitle:  'OFFLINE INFORMATION',
 	recordEEG:  'Record EEG',
 	recording:  ' Recording',
-    testButton:  'Test LED',
-    lightConnected:  'Light therapy connected, press the button to test LED',
-    testInfo:  'Press CONNECT button to connect with Arduino and test LED',
     infoOne: 'Will be some info1',
     infoTwo: 'Will be some info2',
     infoThree: 'Will be some info3',
@@ -110,6 +110,7 @@ export default {
 	alarmClock:  'WECKER',
 	setAlarm:  'Stellen Sie einen Wecker ein',
 	connectArduino:  'Verbinden Sie sich mit Arduino und stellen Sie einen Wecker ein',
+	toShortAlarm:  'Set duration greater than ',
 	setButton:  'Stellen',
 
 	//charts.js
@@ -132,6 +133,7 @@ export default {
 	sleepTrckr:  'Schlaf Tracker',
 	napTrckr:  'Tagschlaf',
 	infoScene:  'Information und Werkzeuge',
+	infoSceneOffline:  'Information',
 	sandboxTitle:  'Sandkasten',
 	eegSandbox:  'EEG Sandkasten',
 	offlineTitle:  'Lichttherapie',

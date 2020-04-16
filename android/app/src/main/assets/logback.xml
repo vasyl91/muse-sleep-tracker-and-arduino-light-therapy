@@ -8,7 +8,7 @@
         </layout>
     </appender>
     <appender name="FILE-APPENDER" class="ch.qos.logback.core.FileAppender">
-        <file>/data/data/com.sleep_tracker/files/log/data.csv</file>
+        <file>/storage/emulated/0/SleepTracker/files/log/data.csv</file>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>
                 %msg%n

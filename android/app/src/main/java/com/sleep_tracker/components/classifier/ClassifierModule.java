@@ -59,6 +59,10 @@ public class ClassifierModule extends ReactContextBaseJavaModule implements Buff
     private int notchFrequency = 60;
     private boolean isTracking;
     private boolean isLogging;
+    private boolean alphaWave;
+    private boolean betaWave;
+    private boolean deltaWave;
+    private boolean thetaWave;
     public static String timestamp;
     public BandPowerExtractor bandExtractor;
     public ClassifierDataListener dataListener;
@@ -188,8 +192,8 @@ public class ClassifierModule extends ReactContextBaseJavaModule implements Buff
         timer.purge();
 
         // Create .csv file
-        File directory = new File("/data/data/com.sleep_tracker/files/csv/");
-        File dataCsv = new File("/data/data/com.sleep_tracker/files/log/data.csv");
+        File directory = new File("/storage/emulated/0/SleepTracker/files/csv/");
+        File dataCsv = new File("/storage/emulated/0/SleepTracker/files/log/data.csv");
         File timestampCsv = new File(directory, timestamp);
         try {
             if (!directory.exists()) {
@@ -363,15 +367,10 @@ public class ClassifierModule extends ReactContextBaseJavaModule implements Buff
 
                 bandMeans = bandExtractor.extract1D(PSD);
 
-                int alpha = measureAlpha(bandMeans);
-                int beta = measureBeta(bandMeans);
-                int delta = measureDelta(bandMeans);
-                int theta = measureTheta(bandMeans);
-
-                sendAlpha("ALPHA", alpha);
-                sendBeta("BETA", beta);  
-                sendDelta("DELTA", delta);
-                sendTheta("THETA", theta);
+                alphaResult = measureAlpha(bandMeans);
+                betaResult = measureBeta(bandMeans);
+                deltaResult = measureDelta(bandMeans);
+                thetaResult = measureTheta(bandMeans);
             }
         }
 

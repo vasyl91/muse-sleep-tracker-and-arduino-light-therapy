@@ -5,9 +5,9 @@ import {
   View, 
   Image,  
   TouchableOpacity, 
-  DeviceEventEmitter,
-  ViewPagerAndroid
+  DeviceEventEmitter
 } from "react-native";
+import ViewPager from '@react-native-community/viewpager';
 import { connect } from "react-redux";
 import {
   HEIGHT,
@@ -290,7 +290,7 @@ class charts extends Component {
         {this.props.isHorizontal === true
           ? null
           : <Text style={styles.currentTitle}>{I18n.t("chartsTitle")}</Text>}
-        <ViewPagerAndroid
+        <ViewPager
           style={styles.viewPager}
           initialPage={0}
           scrollEnabled={false}
@@ -366,7 +366,7 @@ class charts extends Component {
               ? null
               : <Text style={styles.infoText}>Duration: {this.state.info5}</Text>} 
           </View>
-        </ViewPagerAndroid> 
+        </ViewPager> 
         {this.renderContainer()}                   
       </View>
     );
@@ -457,13 +457,11 @@ const styles = MediaQueryStyleSheet.create(
     },
 
     dialogBackground: {
-      flex: 1,
       justifyContent: "center",
-      alignItems: "stretch",
-      backgroundColor: colors.black
+      height: 350
     },
 
-    dialogInnerContainer: {
+    dialogContainer: {
       flex: 1,
       alignItems: "stretch",
       backgroundColor: "white",

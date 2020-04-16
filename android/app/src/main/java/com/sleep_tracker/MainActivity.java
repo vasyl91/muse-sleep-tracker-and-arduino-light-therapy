@@ -1,8 +1,11 @@
 package com.sleep_tracker;
 
 import android.app.Activity;
+import android.app.KeyguardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Window;
@@ -12,6 +15,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
+import com.facebook.react.ReactRootView;
 
 import javax.annotation.Nullable;
 
@@ -31,11 +35,17 @@ public class MainActivity extends ReactActivity {
 		SplashScreen.show(this, R.style.SplashScreenTheme); 
         super.onCreate(savedInstanceState);
         final Window win = getWindow();
-        win.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
-                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD |
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
-                WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { // for API >= 27
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+            KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Activity.KEYGUARD_SERVICE);
+            keyguardManager.requestDismissKeyguard(this, null);
+        } else {
+            win.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD |
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
+                    WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON);
+        }
     }
 
     @Override

@@ -8,11 +8,12 @@ import {
   NativeModules,
   NativeEventEmitter,
   Switch,
-  Slider, 
-  AsyncStorage,
   ActivityIndicator,
   TouchableOpacity
 } from "react-native";
+import Modal from "react-native-modal";
+import AsyncStorage from '@react-native-community/async-storage';
+import Slider from '@react-native-community/slider';
 import { connect } from "react-redux";
 import { 
   setNapTrackerActive,
@@ -78,22 +79,15 @@ class PowerNap extends Component {
     super(props);
     this.predictSubscription = {};
     this.trackerScore = {};
+    this.evaluationCounter = {};
+    this.threshold = 410;
     this.lightValue = {};
-
-    // Initialize States
+    
     this.state = {
-      snoozeTime: 10,
+      popupMenu: false,
+      lightIntensity: 100,
+      snoozeNapTime: 10,
       isAlarmSet: false,
-      evaluation1Active: false,
-      evaluation2Active: false,
-      evaluation3Active: false,
-      evaluation4Active: false,
-      evaluation5Active: false,
-      evaluation6Active: false,
-      evaluation7Active: false,
-      evaluation8Active: false,
-      evaluation9Active: false,
-      evaluation10Active: false,
     };
   }
 
@@ -101,7 +95,6 @@ class PowerNap extends Component {
     Classifier.startClassifier(this.props.notchFrequency);
     Classifier.startNoiseListener();  
     this.loadSnoozeTime();
-    this.loadVibration();
     this.setSnoozeAlarm();
     this.props.setNightTracker(this.props.nightTracker = false);
     this.props.setPowerNap(this.props.powerNap = false);
@@ -114,46 +107,40 @@ class PowerNap extends Component {
     this.props.setPowerNap(this.props.powerNap = true);
   }
 
-  //AsyncStorage & Snooze
-  snoozeTimeObj() {
-    return (this.state.snoozeTime * 1);
+  // AsyncStorage & Snooze
+  snoozeNapTimeObj() {
+    return (this.state.snoozeNapTime * 1);
   };
 
   menuStoreButton() {
     this.storeFunction();
-    this.popupMenu.dismiss();
-    this.props.setMenuInvisible(this.props.isMenuInvisible = false);    
+    this.setState({ popupMenu: false });
+    this.props.setMenuInvisible(this.props.isMenuInvisible = false); 
   }
 
   storeFunction() {
-    AsyncStorage.setItem('snoozeTimeObj', JSON.stringify(Number(this.state.snoozeTime)));
     if (this.props.vibrationActive === true) {
       AsyncStorage.setItem('vibrationObj', JSON.stringify(true));
     } else {
       AsyncStorage.setItem('vibrationObj', JSON.stringify(false));
     }
-  }
-
-  loadVibration() {
-    AsyncStorage.getItem('vibrationObj').then((value) => {
-      this.props.setVibration(this.props.vibrationActive = stringToBoolean(value));
-    });
+    AsyncStorage.setItem('snoozeNapTimeObj', JSON.stringify(Number(this.state.snoozeNapTime)));
   }
 
   loadSnoozeTime() {
-    AsyncStorage.getItem('snoozeTimeObj', (err, result) => {
+    AsyncStorage.getItem('snoozeNapTimeObj').then((result) => {
         if (result !== null) {
-          this.setState({ snoozeTime: result * 1 });
+          this.setState({ snoozeNapTime: Number(result) });
         }
     });
   }
 
-  sliderValue() {
-    return (this.state.snoozeTime * 1)
-  }
+  sliderValue(state) {
+    return Number(state);
+  }  
 
   minutes() { 
-    var absoluteMinutes = this.state.snoozeTime;
+    var absoluteMinutes = this.state.snoozeNapTime;
     var translationMinutes = translation(absoluteMinutes);
 
     if(absoluteMinutes == 1) {
@@ -171,7 +158,7 @@ class PowerNap extends Component {
     var timestamp = moment();
     var setTimestamp = timestamp * 1;
     if (this.props.isSnoozeActive === true) {
-      AsyncStorage.getItem('snoozeTimeObj', (err, result) => {
+      AsyncStorage.getItem('snoozeNapTimeObj', (err, result) => {
           if (result !== null) {
             var time = JSON.parse(result) * MINUTE;
             alarmID = setTimestamp;
@@ -180,7 +167,7 @@ class PowerNap extends Component {
             AsyncStorage.setItem('alarmID', JSON.stringify(alarmID));
             this.setActive();
           } else if (result === null) {
-              var time = this.state.snoozeTime * MINUTE;
+              var time = this.state.snoozeNapTime * MINUTE;
               alarmID = setTimestamp;
               var alarmTime = setTimestamp + time;
               AndroidAlarms.setAlarm(alarmID, alarmTime.valueOf(), false);
@@ -205,11 +192,13 @@ class PowerNap extends Component {
   }
 
   showMenuPopup() {
-    this.popupMenu.show();
+    this.setState({ popupMenu: true });
     this.props.setMenuInvisible(this.props.isMenuInvisible = true);
   }
 
-  //Tracker
+  // Tracker
+  // Checks if wave score is above desired threshold.
+  // If it is for consecutive 10 seconds - an alarm is being triggered.
   setTracker() {
     this.startTrackerA();
     this.startTrackerB(); 
@@ -219,183 +208,68 @@ class PowerNap extends Component {
   startTrackerA() {
     Classifier.startTracking(); 
     this.setScore();
-    this.setState({ evaluation1Active: true });
     this.props.setNapTrackerActive(this.props.isNapTrackerActive = true);
     AsyncStorage.setItem('NapTrackerActive', JSON.stringify(true));
   }
 
-  startTrackerB() {
+  startTrackerB() { 
     const timerTrackId = BackgroundTimer.setInterval(() => {
-      this.start1Evaluation();
-      console.log("Nap evaluation 1 started");
+      this.startFirstEvaluation();
     }, 1000);
     this.setState({ timerTrackId: timerTrackId });   
   }
 
-  start1Evaluation() {
-    if (this.state.evaluation1Active === true)
-      if (this.trackerScore >= 410) {
-        this.dismissTracker();
-        this.setState({ evaluation1Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation2Active: true });
-          this.start2Evaluation();
-          console.log("Nap evaluation 2 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        return null;
-      }
+  startFirstEvaluation() {
+    this.evaluationCounter = 1;
+    console.log("Nap evaluation " + this.evaluationCounter + " started");
+    if (this.trackerScore >= this.threshold) {
+      this.dismissTrackerB();
+      BackgroundTimer.setTimeout(() => {
+        this.startEvaluation();
+        console.log("Nap evaluation " + this.evaluationCounter + " passed");
+      }, 1000);
+    } else if (this.trackerScore < this.threshold) {
+      return null;
+    }
   }
 
-  start2Evaluation() {
-    if (this.state.evaluation2Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation2Active: false });
+  startEvaluation() {
+    this.evaluationCounter = this.evaluationCounter + 1;
+    console.log("Nap evaluation" + this.evaluationCounter + "started");
+    if (this.evaluationCounter <= 9) {
+      if (this.trackerScore >= this.threshold) {
         BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation3Active: true });
-          this.start3Evaluation();
-          console.log("Nap evaluation 3 started");
+          this.startEvaluation();
+          console.log("Nap evaluation" + this.evaluationCounter + "passed");
         }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation2Active: false });
+      } else if (this.trackerScore < this.threshold) {
         this.startTrackerB();
-        console.log("Nap tracker repeated after 2"); 
+        console.log("Nap tracker repeated after evaluation" + this.evaluationCounter); 
       }
+    } else if (this.evaluationCounter > 9) {
+        this.startLastEvaluation();
+    }
   }
 
-  start3Evaluation() {
-    if (this.state.evaluation3Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation3Active: false });
-        BackgroundTimer.setTimeout(() => {         
-          this.setState({ evaluation4Active: true });
-          this.start4Evaluation();
-          console.log("Nap evaluation 4 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation3Active: false });
-        this.startTrackerB();
-        console.log("Nap tracker repeated after 3"); 
-      }
-  }
-
-  start4Evaluation() {
-    if (this.state.evaluation4Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation4Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation5Active: true });
-          this.start5Evaluation();
-          console.log("Nap evaluation 5 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation4Active: false });
-        this.startTrackerB();
-        console.log("Nap tracker repeated after 4"); 
-      }
-  }
-
-  start5Evaluation() {
-    if (this.state.evaluation5Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation5Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation6Active: true });
-          this.start6Evaluation();
-          console.log("Nap evaluation 6 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation5Active: false });
-        this.startTrackerB();
-        console.log("Nap tracker repeated after 5"); 
-      }
-  }
-
-  start6Evaluation() {
-    if (this.state.evaluation6Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation6Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation7Active: true });
-          this.start7Evaluation();
-          console.log("Nap evaluation 7 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation6Active: false });
-        this.startTrackerB();
-        console.log("Nap tracker repeated after 6"); 
-      }
-  }
-
-  start7Evaluation() {
-    if (this.state.evaluation7Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation7Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation8Active: true });
-          this.start8Evaluation();
-          console.log("Nap evaluation 8 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation7Active: false });
-        this.startTrackerB();
-        console.log("Nap tracker repeated after 7"); 
-      }
-  }
-
-  start8Evaluation() {
-    if (this.state.evaluation8Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation8Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation9Active: true });
-          this.start9Evaluation();
-          console.log("Nap evaluation 9 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation8Active: false });
-        this.startTrackerB();
-        console.log("Nap tracker repeated after 8"); 
-      }
-  }
-
-  start9Evaluation() {
-    if (this.state.evaluation9Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation9Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation10Active: true });
-          this.start10Evaluation();
-          console.log("Nap evaluation 10 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation9Active: false });
-        this.startTrackerB();
-        console.log("Nap tracker repeated after 9"); 
-      }
-  }
-
-  start10Evaluation() {
-    if (this.state.evaluation10Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation10Active: false });
-        BackgroundTimer.setTimeout(() => {
-          Classifier.stopTracking(); 
-          this.setAlarm();
-          console.log("Nap alarm set");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation10Active: false });
-        this.startTrackerB();
-        console.log("Nap tracker repeated after 10"); 
-      }
+  startLastEvaluation() {
+    this.evaluationCounter = 0;
+    if (this.trackerScore >= this.threshold) {
+      BackgroundTimer.setTimeout(() => {
+        Classifier.stopTracking(); 
+        this.setAlarm();
+        console.log("Nap alarm set");
+      }, 1000);
+    } else if (this.trackerScore < this.threshold) {
+      this.startTrackerB();
+      console.log("Nap tracker repeated after evaluation" + this.evaluationCounter); 
+    }
   }
 
   setAlarm() {
     this.setState({ isAlarmSet: true });
     timestamp = moment();
     setTimestamp = timestamp * 1;
-    time = 10 * MINUTE;
+    time = 10; // * MINUTE;
     
     alarmID = setTimestamp;
     alarmTime = setTimestamp + time;
@@ -422,21 +296,10 @@ class PowerNap extends Component {
     AsyncStorage.setItem('PowerNap', JSON.stringify(false)); 
     this.willUnmountFunction();
     AsyncStorage.setItem('alarmID', JSON.stringify(null));
-    this.dismissTracker();  
+    this.dismissTrackerB();  
   }
 
-  willUnmountFunction() {
-    this.setState({ evaluation1Active: false });
-    this.setState({ evaluation2Active: false });
-    this.setState({ evaluation3Active: false });
-    this.setState({ evaluation4Active: false });
-    this.setState({ evaluation5Active: false });
-    this.setState({ evaluation6Active: false });
-    this.setState({ evaluation7Active: false });
-    this.setState({ evaluation8Active: false });
-    this.setState({ evaluation9Active: false });
-    this.setState({ evaluation10Active: false });
-    
+  willUnmountFunction() {  
     Classifier.stopTracking();
     this.removeListenerFunc();
     
@@ -449,7 +312,7 @@ class PowerNap extends Component {
     this.setState(clearAlarmLightId); 
 
     this.lightValue = 0;
-    this.setValue();    
+    this.setValue(0);    
   }
 
   setActive() {
@@ -458,7 +321,7 @@ class PowerNap extends Component {
     AsyncStorage.setItem('PowerNap', JSON.stringify(true));
   }
 
-  dismissTracker() {
+  dismissTrackerB() {
     const timerTrackId = this.state.timerTrackId;
     const clearTrackId = BackgroundTimer.clearInterval(timerTrackId);
     this.setState(clearTrackId);   
@@ -482,49 +345,42 @@ class PowerNap extends Component {
     this.predictSubscription = scoreListener.removeListener();
   }
 
-  //Light Therapy
+  // Light Therapy
   increaseLight() {
     this.lightValue = 0;
+    var val = (255 * this.state.lightIntensity) / 100;
+    var interval = (5 * MINUTE) / val;
     const lightId = BackgroundTimer.setInterval(() => {
-      if (this.lightValue < 255) {
+      if (this.lightValue < val.toFixed()) {
         this.lightValue = this.lightValue + 1;
-        this.setValue();
-      }
-    }, 1100);
+        this.setValue(this.lightValue);
+      } 
+    }, interval);
     this.setState({ lightId: lightId });   
   }
 
-  setValue = async value => {
+  async setValue(val) {
     try {
-      value = "b " + this.lightValue + "\n";
-      await BluetoothSerial.write(value)
+      value = "b " + val + "\n";
+      await BluetoothSerial.write(value);
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
   }
 
   pathLight() {
     this.storeFunction();
     this.props.setMenuInvisible(this.props.isMenuInvisible = true);
-    this.props.history.push("/lightTherapy");
+    this.props.history.push("/btModule");
   }
 
-  //Popup disconnected
-  show() {
-    BackgroundTimer.setTimeout(() => {
-      this.popupDisconnected.show();
-      this.props.setMenuInvisible(this.props.isMenuInvisible = false);
-      if (this.props.isNightTrackerActive === true) {
-        this.dismissSnooze();
-      }
-    }, 1);        
-  }
-
+  // Popup disconnected
   pathOne() {
+    this.dismissButton();
     this.props.history.push("/connectorOne");
   }
 
-  //Render
+  // Render
   renderVibrationButton() {
     if (this.props.vibrationActive === true) {
       return (
@@ -578,7 +434,7 @@ class PowerNap extends Component {
   renderTrackButton() {
     if (this.props.isSnoozeActive === true) {
       return (
-        <TouchableOpacity onPress={() => null} disabled={true} style={styles.trackContainer}>
+        <TouchableOpacity disabled={true} style={styles.trackContainer}>
           <Text style={styles.disabledTrackSize}>{I18n.t("track")}</Text>
         </TouchableOpacity>
       );
@@ -601,7 +457,6 @@ class PowerNap extends Component {
         }
   }
 
-
   renderDismissSnooze() {
     if (this.props.isSnoozeActive === true) {
       return (
@@ -610,7 +465,7 @@ class PowerNap extends Component {
         </SandboxButton>
       );
     } else return (
-        <SandboxButton onPress={() => null} disabled={true}>
+        <SandboxButton disabled={true}>
           <Text style={styles.disabledButtonText}>{I18n.t("dismissSnooze")}</Text>
         </SandboxButton>
       );
@@ -619,7 +474,7 @@ class PowerNap extends Component {
   renderMenuIcon() {
     if (this.props.isSnoozeActive === true || this.props.isNapTrackerActive === true) {
       return (
-        <TouchableOpacity onPress={ () => null } disabled={true}>
+        <TouchableOpacity disabled={true}>
           <Image source={require('../assets/menu_button.png')} style={styles.image} resizeMode={"contain"}/>
         </TouchableOpacity>
       );
@@ -631,9 +486,6 @@ class PowerNap extends Component {
   }
 
   render() {
-    if (this.props.connectionStatus === config.connectionStatus.DISCONNECTED) {
-      this.show(); 
-    }
     return (
       <View style={styles.container}>
         <View style={styles.rowHeader}>
@@ -664,26 +516,25 @@ class PowerNap extends Component {
           </View>
         </View>
 
-        <PopupDialog
-          ref={(popupMenu) => { this.popupMenu = popupMenu; }}
-          height={340}
-          dismissOnTouchOutside={false}
-          containerStyle={{ elevation: 10 }}
+        <Modal
+          isVisible={this.state.popupMenu}
+          onBackdropPress={() => {null}}
+          style={{ elevation: 10 }}
         >
           <View style={styles.dialogBackground}>
-            <View style={styles.dialogInnerContainer}>
+            <View style={styles.dialogContainer}>
               <Text style={styles.dialogTitle}>{I18n.t("settings")}</Text>
               <View style={styles.rowHeader}>
                 <Text style={styles.dialogText}>{I18n.t("vibration")}</Text>
                 {this.renderVibrationButton()}
               </View>
-              <Text style={styles.dialogText}>{I18n.t("setDuration")} {this.state.snoozeTime}{this.minutes()}</Text>
+              <Text style={styles.dialogText}>{I18n.t("setDuration")} {this.state.snoozeNapTime}{this.minutes(this.state.snoozeNapTime)}</Text>
               <Slider
                 minimumValue={1}
-                maximumValue={20}
+                maximumValue={10}
                 step={1}
-                value={this.sliderValue()}
-                onValueChange={value => this.setState({ snoozeTime: value }) }
+                value={this.sliderValue(this.state.snoozeNapTime)}
+                onValueChange={value => this.setState({ snoozeNapTime: value }) }
               />
               <View style={styles.rowHeaderLow}>
                 <Text style={styles.dialogText}>{I18n.t("lightTherapy")}</Text>
@@ -696,26 +547,25 @@ class PowerNap extends Component {
               </View>
             </View>
           </View>
-        </PopupDialog>
+        </Modal>
 
-        <PopupDialog
-          ref={(popupDisconnected) => { this.popupDisconnected = popupDisconnected; }}
-          height={230}
-          dismissOnTouchOutside={false}
-          containerStyle={{ elevation: 10 }}
+        <Modal
+          isVisible={this.props.connectionStatus === config.connectionStatus.DISCONNECTED}
+          onBackdropPress={() => {null}}
+          style={{ elevation: 10 }}
         >
-          <View style={styles.dialogBackground}>
-            <View style={styles.dialogInnerContainer}>
+          <View style={styles.dialogDisconnected}>
+            <View style={styles.dialogContainer}>
               <Text style={styles.disconnectedTitle}>{I18n.t("disconnected")}</Text>
               <Text style={styles.dialogText}>{I18n.t("reconnect")}</Text>
               <View style={styles.dialogButtonContainer}>
-                <PickerButton fontSize={25} onPress={this.pathOne.bind(this)}>
-                  {I18n.t("close")}
+                <PickerButton onPress={this.pathOne.bind(this)}>
+                  <Text style={styles.buttonText}>{I18n.t("close")}</Text>
                 </PickerButton>
               </View>
             </View>
           </View>
-        </PopupDialog>
+        </Modal>
 
       </View>
     );
@@ -804,13 +654,6 @@ const styles = MediaQueryStyleSheet.create(
       color: colors.fern
     },
 
-    dialogBackground: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "stretch",
-      backgroundColor: colors.black
-    },
-
     dialogTitle: {
       textAlign: "center",
       color: colors.black,
@@ -818,10 +661,21 @@ const styles = MediaQueryStyleSheet.create(
       fontSize: 30
     },
 
-    dialogInnerContainer: {
+    dialogBackground: {
+      justifyContent: "center",
+      height: 350
+    },
+
+    dialogDisconnected: {
+      justifyContent: "center",
+      height: 200
+    },
+
+    dialogContainer: {
       flex: 1,
       alignItems: "stretch",
       backgroundColor: "white",
+      flexDirection: 'column',
       padding: 20
     },
 

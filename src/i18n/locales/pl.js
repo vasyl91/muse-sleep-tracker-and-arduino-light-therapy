@@ -21,7 +21,8 @@ export default {
 	dismiss:  'Odwołaj',
 	statusConnecting:  'Łączenie...',
 	btDisabled:  'Bluetooth wyłączony',
-    btQuestion:  'Czy chcesz włączyć bluetooth?',
+    btQuestion:  'Czy chcesz włączyć Bluetooth?',
+    enableBT:  'Turn on Bluetooth',
     yes: 'TAK',
     no: 'NIE',
     hour:  ' godzinę',
@@ -38,6 +39,7 @@ export default {
     tracking:  ' Tracking',
     offlineMode: 'Tryb Offline',
     snooze: 'Uśpij',
+    illuminationTime: 'Czas naświetlania: ',
 
 	//begin-landing.js
 	welcomeSleepTracker:  'Witaj \n w aplikacji',
@@ -60,15 +62,16 @@ export default {
 	waitMusePair:  'Poczekaj aż opaska połączy się \n z aplikacją Sleep Tracker...',
 	proceed: 'Połączono! \n Przejdź dalej',
 
-	//light-therapy.js
+	//bt-module.js
 	connectedTo:  'Połączono z:',
 	notConnected:  'Nie połączono',
 	done:  'Gotowe',
-	devicesList:  'Lista sparowanych urządzeń:',
-	refresh:  'Odśwież',
+	devicesList:  'Wyświetl listę sparowanych urządzeń',
+	btList:  'Sparowane urządzenia:',
 	alreadyConnected:  'Już połączono.',
 	unableToConnect:  'Nie można połączyć z tym urządzeniem.',
-
+	testButton:  'Test LED',
+	setLightIntensity:  'Intensywność światła:',
 
 	//nap-night-tracker.js
 	sleepTrackerTitle:  'MONITOR SNU',
@@ -94,13 +97,10 @@ export default {
 
 	//info.js / info-offline.js
 	infoTitle:  'INFO i NARZĘDZIA',
-	offlineInfoTitle:  'INFO OFFLINE i NARZĘDZIA',
+	offlineInfoTitle:  'INFO OFFLINE',
 	recordEEG:  'Nagraj EEG',
 	recording:  ' Nagrywanie',
-    testButton:  'Test LED',
-    lightConnected:  'Połączono, naciśnij przycisk, aby przetestować LED',
-    testInfo:  'Naciśnij przycisk POŁĄCZ, aby połączyć z Arduino i przetestować LED',
-    infoOne: 'Will be some info1',
+    infoOne: 'Suhe gacie na dnie moża',
     infoTwo: 'Will be some info2',
     infoThree: 'Will be some info3',
     infoFour: 'Will be some info4',
@@ -111,6 +111,7 @@ export default {
 	alarmClock:  'ALARM',
 	setAlarm:  'Ustaw alarm',
 	connectArduino:  'Połącz z Arduino i ustaw alarm',
+	toShortAlarm:  'Ustaw alarm dłuższy niż ',
 	setButton:  'Włącz',
 
 	//charts.js
@@ -138,7 +139,8 @@ export default {
 	sleepTrckr:  'Monitor snu',
 	napTrckr:  'Drzemka',
 	infoScene:  'Info i Narzędzia',
-	sandboxTitle:  'Narzędzia',
+	infoSceneOffline:  'Info',
+	sandboxTitle:  'Rejestrator EEG',
 	eegSandbox:  'Rejestrator EEG',
 	offlineTitle:  'Terapia Światłem',
 	alarmTitle:  'Alarm',

@@ -22,6 +22,7 @@ import {
   SET_SAVECSV_ACTIVE,
   SET_CONNECTING,
   SET_BT_CONNECTED,
+  SET_BT_ENABLED,
   SET_LED,
   SET_POWER_NAP,
   SET_NIGHT_TRACKER,
@@ -30,7 +31,7 @@ import {
   SET_INFO,
   SET_OFFLINE_INFO,
   SET_OFFLINE_LIGHT_THERAPY,
-  LESS_THAN_HOUR,
+  SET_LESS,
   SET_ALARM_ON,
   SET_BATTERY_VALUE,
   SET_HORIZONTAL,
@@ -78,6 +79,8 @@ export const setConnecting = payload => ({ payload, type: SET_CONNECTING });
 
 export const setLTConnected = payload => ({ payload, type: SET_BT_CONNECTED });
 
+export const setBTenabled = payload => ({ payload, type: SET_BT_ENABLED });
+
 export const setLed = payload => ({ payload, type: SET_LED });
 
 export const setPowerNap = payload => ({ payload, type: SET_POWER_NAP });
@@ -94,7 +97,7 @@ export const setOfflineInfo = payload => ({ payload, type: SET_OFFLINE_INFO });
 
 export const setOfflineLightTherapy = payload => ({ payload, type: SET_OFFLINE_LIGHT_THERAPY });
 
-export const setLessThanHour = payload => ({ payload, type: LESS_THAN_HOUR });
+export const setLess = payload => ({ payload, type: SET_LESS });
 
 export const setAlarmOn = payload => ({ payload, type: SET_ALARM_ON });
 

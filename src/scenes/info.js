@@ -10,10 +10,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import Modal from "react-native-modal";
 import { connect } from "react-redux";
 import { 
-  setSaveCsvActive, 
-  setLed, 
+  setSaveCsvActive,
   setInfo, 
   setMenuInvisible,
   setNightTracker, 
@@ -24,16 +24,10 @@ import config from "../redux/config";
 import NoiseIndicator from "../components/NoiseIndicator";
 import I18n from "../i18n/i18n";
 import * as colors from "../styles/colors";
-import {
-  HEIGHT,
-  WIDTH
-} from "../alarmclock/AlarmManager";
 import PickerButton from "../alarmclock/PickerButton";
 import Classifier from "../native/Classifier.js";
-import PopupDialog from 'react-native-popup-dialog';
 import { MediaQueryStyleSheet } from "react-native-responsive";
 import BackgroundTimer from "react-native-background-timer";
-import BluetoothSerial from "react-native-bluetooth-serial";
 
 function mapStateToProps(state) {
   return {
@@ -41,9 +35,7 @@ function mapStateToProps(state) {
     notchFrequency: state.notchFrequency,
     noise: state.noise,
     isSaveCsvActive: state.isSaveCsvActive,
-    isLTConnected: state.isLTConnected,
     isMenuInvisible: state.isMenuInvisible,
-    led: state.led,
     info: state.info
   };
 }
@@ -52,7 +44,6 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
       setSaveCsvActive,
-      setLed,
       setInfo,
       setMenuInvisible,
       setNightTracker, 
@@ -66,11 +57,6 @@ function mapDispatchToProps(dispatch) {
 class Info extends Component {
   constructor(props) {
     super(props);
-    this.lightValue = {};
-
-    this.state = {
-      lightId: '',
-    };
   }
 
   componentDidMount() {
@@ -78,53 +64,14 @@ class Info extends Component {
     Classifier.startNoiseListener();
     this.props.setNightTracker(this.props.nightTracker = false);
     this.props.setPowerNap(this.props.powerNap = false);
-    this.props.setOfflineLightTherapy(this.props.offlineLightTherapy = false);      
+    this.props.setOfflineLightTherapy(this.props.offlineLightTherapy = false);   
   }
 
   componentWillUnmount() {
     Classifier.stopNoiseListener();
-    this.dismissLight();  
   }
 
-  //Light therapy
-  increaseLight() {
-    this.lightValue = 0;
-    const lightId = BackgroundTimer.setInterval(() => {
-      if (this.lightValue < 255) {
-        this.props.setLed(this.props.led = true);
-        this.lightValue = this.lightValue + 1;
-        this.setValue();
-      } else {
-          this.dismissLight();        
-      }
-    }, 10);
-    this.setState({ lightId: lightId });   
-  }
-
-  dismissLight() {
-    this.props.setLed(this.props.led = false);
-    this.lightValue = 0;
-    this.setValue(); 
-    const lightId = this.state.lightId;
-    const clearIntervalId = BackgroundTimer.clearInterval(lightId);    
-  }
-
-  setValue = async value => {
-    try {
-      value = "b " + this.lightValue + "\n";
-      await BluetoothSerial.write(value)
-    } catch (e) {
-      console.log(e)
-    }
-  }
-
-  pathLight() {
-    this.props.setInfo(this.props.info = true);
-    this.props.setMenuInvisible(this.props.isMenuInvisible = true);
-    this.props.history.push("/lightTherapy");
-  }
-
-  //CSV
+  // CSV
   onPressButtonStart() {
     console.log("CSV start");
     Classifier.startSaveCSV();
@@ -137,40 +84,15 @@ class Info extends Component {
     this.props.setSaveCsvActive(this.props.isSaveCsvActive = false);
   }
 
-  //Popup disconnected
-  show() {
-      BackgroundTimer.setTimeout(() => {
-        this.popupDisconnected.show();
-      }, 1);        
-  }
-
+  // Popup disconnected
   pathOne() {
+    if (this.props.isSaveCsvActive === true) {
+      this.onPressButtonStop();
+    }
     this.props.history.push("/connectorOne");
   }
 
-  //Render
-  renderLightButton() {
-    if (this.props.isLTConnected === false) {
-      return (
-        <TouchableOpacity onPress={ () => this.pathLight()} style={styles.trackContainer}> 
-          <Text style={styles.trackSize}>{I18n.t("connectButton")}</Text>
-        </TouchableOpacity>
-      );
-    } else {
-        if (this.props.led === false) {
-          return (
-            <TouchableOpacity onPress={ () => this.increaseLight()} style={styles.trackContainer}> 
-              <Text style={styles.trackSize}>{I18n.t("testButton")}</Text>
-            </TouchableOpacity>
-          );
-        } else return (
-            <TouchableOpacity onPress={() => null} disabled={true} style={styles.trackContainer}>
-              <Text style={styles.disabledTrackSize}>{I18n.t("testButton")}</Text>
-            </TouchableOpacity>
-          );
-    }
-  }
-
+  // Render
   renderSaveButton() {
     if (this.props.isSaveCsvActive === false) {
       return (
@@ -202,9 +124,6 @@ class Info extends Component {
   }
 
   render() {
-    if (this.props.connectionStatus === config.connectionStatus.DISCONNECTED) {
-      this.show(); 
-    }
     return (
       <View style={styles.container}>
         <ScrollView>
@@ -235,37 +154,25 @@ class Info extends Component {
               {I18n.t("infoSix")}
             </Text>
           </View>
-          <View style={styles.greenMaterialCard}>
-            {this.props.isLTConnected
-              ? <Text style={styles.infoText}>
-                  {I18n.t("lightConnected")}
-                </Text>
 
-              : <Text style={styles.infoText}>
-                  {I18n.t("testInfo")}
-                </Text>}
-          </View>
-          <View style={styles.pageContainer}>       
-            {this.renderLightButton()}
-          </View>
-          <PopupDialog
-            ref={(popupDisconnected) => { this.popupDisconnected = popupDisconnected; }}
-            height={230}
-            dismissOnTouchOutside={false}
-            containerStyle={{ elevation: 10 }}
+          <Modal
+            isVisible={this.props.connectionStatus === config.connectionStatus.DISCONNECTED}
+            onBackdropPress={() => {null}}
+            style={{ elevation: 10 }}
           >
-            <View style={styles.dialogBackground}>
-              <View style={styles.dialogInnerContainer}>
+            <View style={styles.dialogDisconnected}>
+              <View style={styles.dialogContainer}>
                 <Text style={styles.disconnectedTitle}>{I18n.t("disconnected")}</Text>
                 <Text style={styles.dialogText}>{I18n.t("reconnect")}</Text>
                 <View style={styles.dialogButtonContainer}>
-                  <PickerButton fontSize={25} onPress={this.pathOne.bind(this)}>
-                    {I18n.t("close")}
+                  <PickerButton onPress={this.pathOne.bind(this)}>
+                    <Text style={styles.buttonText}>{I18n.t("close")}</Text>
                   </PickerButton>
                 </View>
               </View>
             </View>
-          </PopupDialog>
+          </Modal>
+
         </ScrollView>
       </View>
     );
@@ -311,13 +218,6 @@ const styles = MediaQueryStyleSheet.create(
       color: colors.black
     },
 
-    dialogBackground: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "stretch",
-      backgroundColor: colors.black
-    },
-
     dialogTitle: {
       textAlign: "center",
       color: colors.black,
@@ -325,10 +225,21 @@ const styles = MediaQueryStyleSheet.create(
       fontSize: 30
     },
 
-    dialogInnerContainer: {
+    dialogBackground: {
+      justifyContent: "center",
+      height: 350
+    },
+
+    dialogDisconnected: {
+      justifyContent: "center",
+      height: 200
+    },
+
+    dialogContainer: {
       flex: 1,
       alignItems: "stretch",
       backgroundColor: "white",
+      flexDirection: 'column',
       padding: 20
     },
 

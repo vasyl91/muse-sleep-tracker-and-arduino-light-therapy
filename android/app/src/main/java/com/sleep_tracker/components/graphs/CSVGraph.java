@@ -8,13 +8,13 @@ import android.graphics.Color;
 import android.graphics.Shader;
 import android.graphics.LinearGradient;
 import android.os.*;
-import android.support.annotation.NonNull;
 import android.util.Log;
 import android.widget.*;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
 import android.view.*;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import androidx.annotation.NonNull;
 
 import com.androidplot.Plot;
 import com.androidplot.ui.HorizontalPositioning;
@@ -42,7 +42,6 @@ import com.androidplot.xy.*;
 import com.androidplot.xy.*;
 
 import com.facebook.react.modules.core.DeviceEventManagerModule;
-//import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;

@@ -1,6 +1,9 @@
 import React, { Component } from "react";
 import { bindActionCreators } from "redux";
 import { Text, View } from "react-native";
+import Modal from "react-native-modal";
+import BackgroundTimer from "react-native-background-timer";
+import { MediaQueryStyleSheet } from "react-native-responsive";
 import { connect } from "react-redux";
 import config from "../redux/config";
 import { 
@@ -21,9 +24,6 @@ import {
   WIDTH
 } from "../alarmclock/AlarmManager";
 import PickerButton from "../alarmclock/PickerButton";
-import BackgroundTimer from "react-native-background-timer";
-import PopupDialog from 'react-native-popup-dialog';
-import { MediaQueryStyleSheet } from "react-native-responsive";
 
 function mapStateToProps(state) {
   return {
@@ -61,12 +61,6 @@ class Sandbox extends Component {
     this.props.setNightTracker(this.props.nightTracker = false);
     this.props.setPowerNap(this.props.powerNap = false);
     this.props.setOfflineLightTherapy(this.props.offlineLightTherapy = false);  
-  }
-
-  show() {
-      BackgroundTimer.setTimeout(() => {
-        this.popupDisconnected.show();
-      }, 1);        
   }
 
   pathOne() {
@@ -145,9 +139,6 @@ class Sandbox extends Component {
   }
 
   render() {
-    if (this.props.connectionStatus === config.connectionStatus.DISCONNECTED) {
-      this.show(); 
-    }
     return (
       <View style={styles.container}>
         <View
@@ -230,24 +221,23 @@ class Sandbox extends Component {
           </View>
         </View>
         
-        <PopupDialog
-          ref={(popupDisconnected) => { this.popupDisconnected = popupDisconnected; }}
-          height={230}
-          dismissOnTouchOutside={false}
-          containerStyle={{ elevation: 10 }}
+        <Modal
+          isVisible={this.props.connectionStatus === config.connectionStatus.DISCONNECTED}
+          onBackdropPress={() => {null}}
+          style={{ elevation: 10 }}
         >
-          <View style={styles.dialogBackground}>
-            <View style={styles.dialogInnerContainer}>
+          <View style={styles.dialogDisconnected}>
+            <View style={styles.dialogContainer}>
               <Text style={styles.disconnectedTitle}>{I18n.t("disconnected")}</Text>
               <Text style={styles.dialogText}>{I18n.t("reconnect")}</Text>
               <View style={styles.dialogButtonContainer}>
-                <PickerButton fontSize={25} onPress={this.pathOne.bind(this)}>
-                  {I18n.t("close")}
+                <PickerButton onPress={this.pathOne.bind(this)}>
+                  <Text style={styles.buttonText}>{I18n.t("close")}</Text>
                 </PickerButton>
               </View>
             </View>
           </View>
-        </PopupDialog>
+        </Modal>
         
       </View>
     );
@@ -358,13 +348,6 @@ const styles = MediaQueryStyleSheet.create(
       color: colors.black
     },
 
-    dialogBackground: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "stretch",
-      backgroundColor: colors.black
-    },
-
     dialogTitle: {
       textAlign: "center",
       color: colors.black,
@@ -372,10 +355,16 @@ const styles = MediaQueryStyleSheet.create(
       fontSize: 30
     },
 
-    dialogInnerContainer: {
+    dialogDisconnected: {
+      justifyContent: "center",
+      height: 200
+    },
+
+    dialogContainer: {
       flex: 1,
       alignItems: "stretch",
       backgroundColor: "white",
+      flexDirection: 'column',
       padding: 20
     },
 

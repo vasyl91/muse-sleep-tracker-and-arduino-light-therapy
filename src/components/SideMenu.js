@@ -3,7 +3,7 @@
 // Based on react-native-side-menu
 
 import React, { Component } from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, Text } from "react-native";
 import { MediaQueryStyleSheet } from "react-native-responsive";
 import { withRouter } from "react-router";
 import { connect } from "react-redux";
@@ -51,9 +51,8 @@ class SideMenu extends Component {
             connectionStatus={this.props.connectionStatus}
             isOfflineMode={this.props.isOfflineMode}
           />
-          
+          <Text style={styles.titleStyle}>{I18n.t("sleepTitle")}</Text>
           <MenuSection
-            title={I18n.t("sleepTitle")}
             items={[
               {
                 value: I18n.t("sleepTrckr"),
@@ -73,8 +72,8 @@ class SideMenu extends Component {
               },
             ]}
           />
+          <Text style={styles.titleStyle}>{I18n.t("sandboxTitle")}</Text>
           <MenuSection
-            title={I18n.t("sandboxTitle")}
             items={[
               {
                 value: I18n.t("eegSandbox"),
@@ -112,9 +111,8 @@ class SideMenu extends Component {
             connectionStatus={this.props.connectionStatus}
             isOfflineMode={this.props.isOfflineMode}
           />
-
+          <Text style={styles.titleStyle}>{I18n.t("offlineTitle")}</Text>
           <MenuSection
-            title={I18n.t("offlineTitle")}
             items={[
               {
                 value: I18n.t("alarmTitle"),
@@ -126,7 +124,7 @@ class SideMenu extends Component {
                 onPress: () => this.navTo("/offline/lightTherapyOffline")
               },
               {
-                value: I18n.t("infoScene"),
+                value: I18n.t("infoSceneOffline"),
                 disabled:
                   !this.props.isOfflineMode &&
                   this.props.connectionStatus !==
@@ -158,6 +156,15 @@ const styles = MediaQueryStyleSheet.create(
     menuContainer: {
       flex: 1,
       backgroundColor: colors.pickle
+    },
+
+    titleStyle: {
+      fontSize: 20,
+      fontFamily: "Roboto-Medium",
+      color: colors.white,
+      marginLeft: 10,
+      marginTop: 10,
+      marginBottom: -12
     }
   },
   {

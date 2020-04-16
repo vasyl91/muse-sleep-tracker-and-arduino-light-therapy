@@ -21,7 +21,8 @@ export default {
 	dismiss:  'Dismiss',
 	statusConnecting:  'Connecting...',
 	btDisabled:  'Bluetooth is disabled',
-    btQuestion:  'Do you want to enable bluetooth?',
+    btQuestion:  'Do you want to enable Bluetooth?',
+    enableBT:  'Turn on Bluetooth',
     yes: 'YES',
     no: 'NO',
     hour:  ' hour',
@@ -38,6 +39,7 @@ export default {
     tracking:  ' Tracking',
     offlineMode: 'Offline Mode',
     snooze: 'Snooze',
+    illuminationTime: 'Illumination time: ',
 
 	//begin-landing.js
 	welcomeSleepTracker:  'Welcome to',
@@ -60,15 +62,16 @@ export default {
 	waitMusePair:  'Wait for your Muse to pair \n with Sleep Tracker...',
 	proceed: 'Connected! \n Proceed to Sleep Tracker',
 
-	//light-therapy.js
+	//bt-module.js
 	connectedTo:  'Connected to:',
 	notConnected:  'Not connected',
 	done:  'Done',
-	devicesList:  'List of paired devices:',
-	refresh:  'Refresh',
+	devicesList:  'List paired devices',
+	btList:  'Paired devices:',
 	alreadyConnected:  'Already connected.',
 	unableToConnect:  'Unable to connect to this device.',
-
+	testButton:  'Test LED',
+	setLightIntensity:  'Light intensity:',
 
 	//nap-night-tracker.js
 	sleepTrackerTitle:  'SLEEP TRACKER',
@@ -94,23 +97,21 @@ export default {
 
 	//info.js / info-offline.js
 	infoTitle:  'INFO & TOOLS',
-	offlineInfoTitle:  'OFFLINE INFO & TOOLS',
+	offlineInfoTitle:  'OFFLINE INFO',
 	recordEEG:  'Record EEG',
 	recording:  ' Recording',
-    testButton:  'Test LED',
-    lightConnected:  'Light therapy connected, press the button to test LED',
-    testInfo:  'Press CONNECT button to connect with Arduino and test LED',
-    infoOne: 'Will be some info1',
+    infoOne: 'Suhe gacie na dnie moża',
     infoTwo: 'Will be some info2',
     infoThree: 'Will be some info3',
     infoFour: 'Will be some info4',
     infoFive: 'Will be some info5',
-    infoSix: '/data/data/com.sleep_tracker/files/csv/',
+    infoSix: 'Will be some info6',
 
 	//light-therapy-offline.js
 	alarmClock:  'ALARM CLOCK',
 	setAlarm:  'Set an alarm',
 	connectArduino:  'Connect with Arduino and set an alarm',
+	toShortAlarm:  'Set duration greater than ',
 	setButton:  'Set',
 
 	//charts.js
@@ -138,6 +139,7 @@ export default {
 	sleepTrckr:  'Sleep Tracker',
 	napTrckr:  'Power Nap',
 	infoScene:  'Info & Tools',
+	infoSceneOffline:  'Info',
 	sandboxTitle:  'Sandbox',
 	eegSandbox:  'EEG Sandbox',
 	offlineTitle:  'Light Therapy',

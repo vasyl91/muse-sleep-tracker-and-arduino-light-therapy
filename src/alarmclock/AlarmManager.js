@@ -1,4 +1,5 @@
-import { AsyncStorage, Vibration, Dimensions } from "react-native";
+import { Vibration, Dimensions } from "react-native";
+import AsyncStorage from '@react-native-community/async-storage';
 import AndroidAlarms from 'react-native-android-alarms';
 import { setAlarmOn } from "../redux/actions";
 import store from "../redux/store.js";
@@ -16,10 +17,16 @@ export const hoursData = ['00', '01', '02', '03', '04', '05', '06', '07', '08', 
 export const minutesData = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59'];
 
 export function activateAlarm() {
+    _vibration = true;
+    AsyncStorage.getItem('vibrationObj').then((value) => {
+      if (value !== null) {
+        this._vibration = stringToBoolean(value);
+        if (this._vibration === true) {
+            Vibration.vibrate(PATTERN, true);
+        }
+      }
+    });
     AndroidAlarms.startAlarm(); 
-    if (store.getState().vibrationActive === true) {
-        Vibration.vibrate(PATTERN, true);
-    }
 }
 
 export function dismissAlarm() {

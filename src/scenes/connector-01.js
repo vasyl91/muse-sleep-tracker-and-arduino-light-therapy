@@ -4,8 +4,8 @@ import {
   Text, 
   View, 
   PermissionsAndroid, 
-  AsyncStorage  
 } from "react-native";
+import AsyncStorage from '@react-native-community/async-storage';
 import { connect } from "react-redux";
 import { 
   setOfflineMode, 
@@ -65,7 +65,7 @@ class ConnectorOne extends Component {
   async requestPermissions() {
     var permissions = [PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-         PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,];
+         PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE];
     try {
       const granted = await PermissionsAndroid.requestMultiple(permissions);
       Battery.batteryOptimization();

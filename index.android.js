@@ -2,9 +2,9 @@ import React, { Component } from "react";
 import PropTypes from 'prop-types';
 import { 
   View, 
-  AppRegistry, 
-  AsyncStorage 
+  AppRegistry
 } from "react-native";
+import AsyncStorage from '@react-native-community/async-storage';
 import {
   NativeRouter,
   AndroidBackButton,
@@ -44,7 +44,7 @@ import ConnectorTwo from "./src/scenes/connector-02";
 import NightTracker from "./src/scenes/night-tracker.js";
 import PowerNap from "./src/scenes/power-nap.js";
 import Sandbox from "./src/scenes/sandbox";
-import LightTherapy from "./src/scenes/light-therapy";
+import BTmodule from "./src/scenes/bt-module";
 import Info from "./src/scenes/info";
 import InfoOffline from "./src/scenes/offlineMode/info-offline";
 import LightTherapyOffline from "./src/scenes/offlineMode/light-therapy-offline";
@@ -178,7 +178,7 @@ class SleepTracker extends Component {
 				          <Route path="/nightTracker" component={NightTracker} />
                   <Route path="/powerNap" component={PowerNap} />
                   <Route path="/sandbox" component={Sandbox} />
-				          <Route path="/lightTherapy" component={LightTherapy} />
+				          <Route path="/btModule" component={BTmodule } />
                   <Route path="/info" component={Info} />
                   <Route path="/offline/infoOffline" component={InfoOffline} />
                   <Route path="/offline/lightTherapyOffline" component={LightTherapyOffline} /> // this is Alarm Clock scene which has been created to handle Light Therapy without Muse headband

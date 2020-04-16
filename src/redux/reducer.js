@@ -21,6 +21,7 @@ import {
   SET_SAVECSV_ACTIVE,
   SET_CONNECTING,
   SET_BT_CONNECTED,
+  SET_BT_ENABLED,
   SET_LED,
   SET_POWER_NAP,
   SET_NIGHT_TRACKER,
@@ -29,7 +30,7 @@ import {
   SET_INFO,
   SET_OFFLINE_INFO,
   SET_OFFLINE_LIGHT_THERAPY,
-  LESS_THAN_HOUR,
+  SET_LESS,
   SET_ALARM_ON,
   SET_BATTERY_VALUE,
   SET_HORIZONTAL,
@@ -55,6 +56,7 @@ const initialState = {
   isSaveCsvActive: false,
   connecting: false,
   isLTConnected: false,
+  isBTenabled: false,
   led: false,
   powerNap: false,
   nightTracker: false,
@@ -63,7 +65,7 @@ const initialState = {
   info: false,
   offlineInfo: false,
   offlineLightTherapy: false,
-  isLessThanHour: true,
+  isLess: true,
   alarmOn: false,
   batteryValue: null,
   isHorizontal: false,
@@ -181,6 +183,12 @@ export default function reducer(state = initialState, action = {}) {
         ...state,
         isLTConnected: action.payload
       };
+      
+    case SET_BT_ENABLED:
+      return {
+        ...state,
+        isBTenabled: action.payload
+      };      
 
     case SET_LED:
       return {
@@ -230,10 +238,10 @@ export default function reducer(state = initialState, action = {}) {
         offlineLightTherapy: action.payload
       };
 
-    case LESS_THAN_HOUR:
+    case SET_LESS:
       return {
         ...state,
-        isLessThanHour: action.payload
+        isLess: action.payload
       };
 
     case SET_ALARM_ON:

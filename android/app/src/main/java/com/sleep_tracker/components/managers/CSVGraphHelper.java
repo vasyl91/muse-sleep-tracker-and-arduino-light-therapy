@@ -1,5 +1,9 @@
 package com.sleep_tracker.components.managers;
 
+import android.content.pm.PackageManager;
+import android.Manifest;
+import androidx.core.content.ContextCompat;
+
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -49,29 +53,31 @@ public class CSVGraphHelper extends ReactContextBaseJavaModule {
     @ReactMethod
     public void setFiles() {
         try {
-            // Check if directory exists. If not, create it and create 10 empty .csv files to avoid errors
-            if (!directory.exists()) {
-                directory.mkdirs();
-                File f;
-                for(int i=0;i<10;i++) {
-                    String timestamp = String.valueOf(System.currentTimeMillis()).substring(0, 8);
-                    f = new File(directoryString + timestamp + "0" + i + ".csv");
-                    f.createNewFile();
-                }
-            }
-            // Get .csv file title and if file is not empty - convert it to proper date format and send it to JS          
-            FileFilter fileFilter = new WildcardFileFilter("*.csv");
-            File[] files = directory.listFiles(fileFilter);
-            Arrays.sort(files, LastModifiedFileComparator.LASTMODIFIED_REVERSE);
-            for(int j=0;j<10;j++) {
-                String stringFile = directoryString + files[j].getName();
-                File file = new File(stringFile); 
-                if (file.length() > 0) { 
-                    String fileNameDotCsv = file.getName();
-                    String fileNameString = FilenameUtils.removeExtension(fileNameDotCsv);
-                    String fileName = new SimpleDateFormat("dd.MM.yyyy - HH:mm").format(new Date((Long.parseLong(fileNameString)) * 1000));
-                    String eventName = "TITLE_" + String.valueOf(j);
-                    sendData(eventName, fileName);
+            if (ContextCompat.checkSelfPermission(appState, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                // Check if directory exists. If not, create it and create 10 empty .csv files to avoid errors
+                if (!directory.isDirectory()) {
+                    directory.mkdirs();
+                    File f;
+                    for(int i=0;i<10;i++) {
+                        String timestamp = String.valueOf(System.currentTimeMillis()).substring(0, 8);
+                        f = new File(directoryString + timestamp + "0" + i + ".csv");
+                        f.createNewFile();
+                    }
+                } 
+                // Get .csv file title and if file is not empty - convert it to proper date format and send it to JS          
+                FileFilter fileFilter = new WildcardFileFilter("*.csv");
+                File[] files = directory.listFiles(fileFilter);
+                Arrays.sort(files, LastModifiedFileComparator.LASTMODIFIED_REVERSE);
+                for(int j=0;j<10;j++) {
+                    String stringFile = directoryString + files[j].getName();
+                    File file = new File(stringFile); 
+                    if (file.length() > 0) { 
+                        String fileNameDotCsv = file.getName();
+                        String fileNameString = FilenameUtils.removeExtension(fileNameDotCsv);
+                        String fileName = new SimpleDateFormat("dd.MM.yyyy - HH:mm").format(new Date((Long.parseLong(fileNameString)) * 1000));
+                        String eventName = "TITLE_" + String.valueOf(j);
+                        sendData(eventName, fileName);
+                    }
                 }
             }
         } catch (IOException e) {

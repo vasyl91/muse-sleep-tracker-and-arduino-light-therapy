@@ -20,8 +20,8 @@ export default class SandboxGraph extends Component {
     super(props);
   }
 
-  componentWillReceiveProps(nextProps) {
-    if (this.props.graphType !== nextProps.graphType) {
+  componentDidUpdate() {
+    if (this.props.graphType !== this.props.graphType) {
       this.stopThreads();
     }
   }

@@ -29,19 +29,13 @@ function mapStateToProps(state) {
 class ConnectorTwo extends Component {
   constructor(props) {
     super(props);
+    this.willMount();
   }
 
-  async componentWillMount() {
-    const bluetoothState = await BluetoothSerial.isEnabled()
+  async willMount() {
+    const bluetoothState = await BluetoothSerial.isEnabled();
     if (!bluetoothState) {
-      await this.isBluetoothEnabled()
-    }
-  }
-
-  componentDidMount() {
-    const bluetoothState = BluetoothSerial.isEnabled()
-    if (!bluetoothState) {
-      BluetoothSerial.on('bluetoothDisabled', this.isBluetoothEnabled)
+      await this.isBluetoothEnabled();
     }
   }
 

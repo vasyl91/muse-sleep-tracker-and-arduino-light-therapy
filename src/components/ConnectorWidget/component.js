@@ -13,6 +13,7 @@ import {
   Image
 } from "react-native";
 import { MediaQueryStyleSheet } from "react-native-responsive";
+import BackgroundTimer from "react-native-background-timer";
 import config from "../../redux/config";
 import Connector from "../../native/Connector";
 import WhiteButton from "../WhiteButton";
@@ -111,6 +112,10 @@ class MusesPopUp extends Component {
 export default class ConnectorWidget extends Component {
   constructor(props) {
     super(props);
+    this.willMount();
+    this.counter = 1;
+    this._connecting = false;
+    this._userChoice = false;
 
     this.state = {
       musePopUpIsVisible: false,
@@ -118,8 +123,25 @@ export default class ConnectorWidget extends Component {
     };
   }
 
-  componentWillMount(){
+  willMount() {
     Connector.startConnector();
+  }
+
+  // Five connection attempts
+  autoconnect() {
+    if (this.counter <= 4 && this._connecting === false) {
+        BackgroundTimer.setTimeout(() => {       
+          if (this.props.connectionStatus !== config.connectionStatus.SEARCHING ||
+              this.props.connectionStatus !== config.connectionStatus.CONNECTING) {
+                this.counter = this.counter + 1;
+                console.log("Attempt " + this.counter);
+                this._connecting = true;
+                this.getAndConnectToDevice();
+          } 
+        }, 100);
+    } else if (this.counter > 4) {
+        this._userChoice = false;
+    }
   }
 
   // Might want to push some more of this logic into Redux actions
@@ -139,6 +161,12 @@ export default class ConnectorWidget extends Component {
   }
 
   render() {
+    if (this.props.connectionStatus === config.connectionStatus.DISCONNECTED && this._userChoice === true) {
+      this._connecting = false;
+      this.autoconnect();
+    } else if (this.props.connectionStatus === config.connectionStatus.CONNECTED) {
+      this._userChoice = false;
+    }
     switch (this.props.connectionStatus) {
       case config.connectionStatus.NOT_YET_CONNECTED:
       case config.connectionStatus.DISCONNECTED:
@@ -147,7 +175,12 @@ export default class ConnectorWidget extends Component {
         return (
           <View style={styles.container}>
             <Text style={styles.noMuses}>{I18n.t("noMuse")}</Text>
-            <WhiteButton onPress={() => this.getAndConnectToDevice()}>
+            <WhiteButton onPress={() => {
+                this.getAndConnectToDevice(); 
+                this._userChoice = true; 
+                this.counter = 1; 
+                console.log("Attempt " + this.counter);
+            }}>
               {I18n.t("search")}
             </WhiteButton>
           </View>

@@ -61,7 +61,7 @@ const styles = MediaQueryStyleSheet.create(
       justifyContent: "center",
       backgroundColor: colors.heather,
       height: 50,
-      width: 100,
+      width: 200,
       margin: 5,
       padding: 5,
       alignItems: "center",

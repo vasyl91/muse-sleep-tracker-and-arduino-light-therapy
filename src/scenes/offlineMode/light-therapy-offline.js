@@ -5,11 +5,11 @@ import {
   Text,
   Image,
   View,
-  Slider, 
-  AsyncStorage,
   TouchableOpacity,
   Alert
 } from "react-native";
+import AsyncStorage from '@react-native-community/async-storage';
+import Slider from '@react-native-community/slider';
 import { connect } from "react-redux";
 import { 
   setAlarmActive, 
@@ -18,7 +18,8 @@ import {
   setOfflineLightTherapy,
   setMenuInvisible, 
   setSnoozeActive, 
-  setVibration
+  setVibration,
+  setLess
 } from "../../redux/actions";
 import config from "../../redux/config";
 import I18n from "../../i18n/i18n";
@@ -42,9 +43,9 @@ import {
 } from "../../alarmclock/AlarmManager";
 import { MediaQueryStyleSheet } from "react-native-responsive";
 import BluetoothSerial from "react-native-bluetooth-serial";
-import PopupDialog from 'react-native-popup-dialog';
+import Modal from "react-native-modal";
 import BackgroundTimer from "react-native-background-timer";
-import { WheelPicker } from 'react-native-wheel-picker-android';
+import { TimePicker } from 'react-native-wheel-picker-android'
 import AndroidAlarms from 'react-native-android-alarms';
 
 function mapStateToProps(state) {
@@ -53,7 +54,8 @@ function mapStateToProps(state) {
     isSnoozeActive: state.isSnoozeActive,
     isLTConnected: state.isLTConnected,
     vibrationActive: state.vibrationActive,
-    refresh: state.refresh
+    refresh: state.refresh,
+    isLess: state.isLess
   };
 }
 
@@ -66,7 +68,8 @@ function mapDispatchToProps(dispatch) {
       setOfflineLightTherapy,
       setMenuInvisible,
       setSnoozeActive,      
-      setVibration
+      setVibration,
+      setLess
     },
     dispatch
   );
@@ -107,7 +110,7 @@ function parseMillisecondsIntoReadableTime(milliseconds){ // translationHours an
       return I18n.t("belowMinute");
     } else if(absoluteMinutes >= 1) {
         return I18n.t("alarmIn") + absoluteMinutes + mTxt;
-      } 
+      } else return absoluteMinutes;
   } else {
       return I18n.t("alarmIn") + absoluteHours + hTxt + I18n.t("and") + absoluteMinutes + mTxt;
   }
@@ -117,27 +120,40 @@ class OfflineLightTherapy extends Component {
   constructor(props) {
     super(props);
     this.lightValue = {};
+    this.selectedHours = 9;
+    this.selectedMinutes = 0;
+    this.displayMinutes = (this.selectedMinutes < 10 ? "0" + this.selectedMinutes : this.selectedMinutes);
+    this.displayHours = (this.selectedHours < 10 ? "0" + this.selectedHours : this.selectedHours);
 
     this.state = {
-      selectedHours: "09",
-      selectedMinutes: "00",
-      selectedPickerHour: 9,
-      selectedPickerMinute: 0,
       snoozeTime: 10,
+      lightTime: 15,
+      popupMenu: false,
+      popupPicker: false,
+      lightIntensity: 100,
     };
   }
 
   componentDidMount() {
-    this.loadAlarm(); 
+    this.loadAsyncStorage(); 
     this.setSnoozeAlarm();
     this.props.setNightTracker(this.props.nightTracker = false);
     this.props.setPowerNap(this.props.powerNap = false);
     this.props.setOfflineLightTherapy(this.props.offlineLightTherapy = false);
     
     const refreshId = BackgroundTimer.setInterval(() => {
+      this.checkTime();
       this.refreshTime();
     }, 1000); 
     this.setState({ refreshId: refreshId });  
+
+    // send sth every 5 minutes to maintain connection for longer peroid
+    const keepConnection = BackgroundTimer.setInterval(() => {
+      if ((this.getTime() > (this.state.lightTime * MINUTE)) && this.props.isLTConnected === true) {     
+        this.setValue(0);
+      }
+    }, 300000); 
+    this.setState({ keepConnection: keepConnection }); 
   }
 
   componentWillUnmount() {
@@ -147,11 +163,15 @@ class OfflineLightTherapy extends Component {
     const refreshId = this.state.refreshId;
     const clearRefreshId = BackgroundTimer.clearTimeout(refreshId);
     this.setState(clearRefreshId);
+
+    const keepConnection = this.state.keepConnection;
+    const clearKeepConnection = BackgroundTimer.clearTimeout(keepConnection);
+    this.setState(clearKeepConnection);
   }
 
   isBluetoothEnabled = async () => {
     try {
-      const bluetoothState = await BluetoothSerial.isEnabled()
+      const bluetoothState = await BluetoothSerial.isEnabled();
       if (!bluetoothState) {
         Alert.alert(
           I18n.t("btDisabled"),
@@ -168,68 +188,72 @@ class OfflineLightTherapy extends Component {
             },
           ],
           { cancelable: false },
-        )
+        );
       }
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
   }
 
   enableBluetoothAndRefresh = async () => {
     try {
-      await BluetoothSerial.enable()
+      await BluetoothSerial.enable();
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
   }
 
   increaseLight() { 
     this.lightValue = 0;
+    var val = (255 * this.state.lightIntensity) / 100;
+    var interval = (this.state.lightTime * MINUTE) / val;
     const lightId = BackgroundTimer.setInterval(() => {
-      if (this.lightValue < 255) {
+      if (this.lightValue < val.toFixed()) {
         this.lightValue = this.lightValue + 1;
-        this.setValue();
+        this.setValue(this.lightValue);
       } 
-    }, 2300);
+    }, interval);
     this.setState({ lightId: lightId });   
   }
 
-  setValue = async value => {
+  async setValue(val) {
     try {
-      value = "b " + this.lightValue + "\n";
-      await BluetoothSerial.write(value)
+      value = "b " + val + "\n";
+      await BluetoothSerial.write(value);
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
   }
 
   pathLight() { 
+    this.setState({ popupMenu: false });
     this.storeFunction();
     this.isBluetoothEnabled();
     this.props.setMenuInvisible(this.props.isMenuInvisible = true);
-    this.props.history.push("/lightTherapy");
+    this.props.history.push("/btModule");
   }
 
-  //AsyncStorage & Snooze
+  // AsyncStorage & Snooze
   storeTimeButton() {
     this.storeAlarm();
-    this.popupDialog.dismiss();
+    this.checkTime();
+    this.setState({ popupPicker: false });
     this.props.setMenuInvisible(this.props.isMenuInvisible = false); 
   }
 
   menuStoreButton() {
     this.storeFunction();
-    this.popupMenu.dismiss();
+    this.setState({ popupMenu: false });
     this.props.setMenuInvisible(this.props.isMenuInvisible = false);  
   }
 
-  showTimePopup() {
-    this.popupDialog.show();
+  showPickerPopup() {
+    this.setState({ popupPicker: true });
     this.props.setMenuInvisible(this.props.isMenuInvisible = true);
   }
 
   showMenuPopup() {
-    this.popupMenu.show();
+    this.setState({ popupMenu: true });
     this.props.setMenuInvisible(this.props.isMenuInvisible = true);
   }
 
@@ -242,35 +266,46 @@ class OfflineLightTherapy extends Component {
   }
 
   storeFunction() {
-    AsyncStorage.setItem('snoozeTimeObj', JSON.stringify(Number(this.state.snoozeTime)));
     if (this.props.vibrationActive === true) {
       AsyncStorage.setItem('vibrationObj', JSON.stringify(true));
     } else {
       AsyncStorage.setItem('vibrationObj', JSON.stringify(false));
     }
+    AsyncStorage.setItem('snoozeTimeObj', JSON.stringify(Number(this.state.snoozeTime)));
+    AsyncStorage.setItem('lightTimeObj', JSON.stringify(Number(this.state.lightTime)));
   }
 
   storeAlarm() {
-    AsyncStorage.setItem('hoursObj', JSON.stringify(Number(this.state.selectedHours)));
-    AsyncStorage.setItem('minutesObj', JSON.stringify(Number(this.state.selectedMinutes)));
+    AsyncStorage.setItem('hoursObj', JSON.stringify(Number(this.selectedHours)));
+    AsyncStorage.setItem('minutesObj', JSON.stringify(Number(this.selectedMinutes)));
   }
 
-  loadAlarm() {
+  loadAsyncStorage() {
     AsyncStorage.getItem('hoursObj').then((result) => {
         if (result !== null) {
-          this.setState({ selectedHours: (result < 10 ? "0" + result : result) });
-          this.setState({ selectedPickerHour: Number(result) });
+          this.selectedHours = Number(result);
+          this.displayHours = (result < 10 ? "0" + result : result);
         }
     });
     AsyncStorage.getItem('minutesObj').then((result) => {
         if (result !== null) {
-          this.setState({ selectedMinutes: (result < 10 ? "0" + result : result) });
-          this.setState({ selectedPickerMinute: Number(result) });
+          this.selectedMinutes = Number(result);
+          this.displayMinutes = (result < 10 ? "0" + result : result);
         }
     });
     AsyncStorage.getItem('snoozeTimeObj').then((result) => {
         if (result !== null) {
           this.setState({ snoozeTime: Number(result) });
+        }
+    });
+    AsyncStorage.getItem('lightIntensityObj').then((result) => {
+        if (result !== null) {
+          this.setState({ lightIntensity: Number(result) });
+        }
+    });
+    AsyncStorage.getItem('lightTimeObj').then((result) => {
+        if (result !== null) {
+          this.setState({ lightTime: Number(result) });
         }
     });
   }
@@ -303,12 +338,11 @@ class OfflineLightTherapy extends Component {
     this.dismissButton();
   }
 
-  sliderValue() {
-    return Number(this.state.snoozeTime);
+  sliderValue(state) {
+    return Number(state);
   }
 
-  minutes() { 
-    var absoluteMinutes = this.state.snoozeTime;
+  minutes(absoluteMinutes) {
     var translationMinutes = translation(absoluteMinutes);
 
     if(absoluteMinutes == 1) {
@@ -322,10 +356,10 @@ class OfflineLightTherapy extends Component {
     };
   }
 
-  //Alarm
+  // Alarm
   getTime() {
     var selectedTimeInMS, currentTimeInMS, mathAlarm;
-    selectedTimeInMS = ((this.state.selectedHours * HOUR) + (this.state.selectedMinutes * MINUTE));
+    selectedTimeInMS = ((this.selectedHours * HOUR) + (this.selectedMinutes * MINUTE));
     currentTimeInMS =  currentTime();
 
     if(selectedTimeInMS > currentTimeInMS) {
@@ -334,7 +368,7 @@ class OfflineLightTherapy extends Component {
       mathAlarm = ((DAY - currentTimeInMS) + selectedTimeInMS);
     };
 
-    return mathAlarm; // returns time to next alarm in MS
+    return mathAlarm; // returns 'remaining time to an alarm' in MS
   }
 
   readableTime() {
@@ -361,6 +395,26 @@ class OfflineLightTherapy extends Component {
     }
   }
 
+  checkTime() {
+    if (this.getTime() <= (this.state.lightTime * MINUTE)) {
+      this.props.setLess(this.props.isLess = true);
+    } else {
+        this.props.setLess(this.props.isLess = false); 
+    }
+  }
+
+  initialTime() {
+    return ((this.selectedHours * HOUR) + (this.selectedMinutes * MINUTE) - HOUR);
+  }
+
+  onTimeSelected = date => {
+    this.selectedHours = date.getHours();
+    this.selectedMinutes = date.getMinutes();
+    this.displayMinutes = (this.selectedMinutes < 10 ? "0" + this.selectedMinutes : this.selectedMinutes);
+    this.displayHours = (this.selectedHours < 10 ? "0" + this.selectedHours : this.selectedHours);
+    this.initialTime();
+  }
+
   setAlarm() {
     time = this.getTime();    
     alarmTime = Number(moment()) + time;
@@ -368,11 +422,11 @@ class OfflineLightTherapy extends Component {
     AndroidAlarms.setAlarm(alarmTime, alarmTime.valueOf(), false);
     AsyncStorage.setItem('alarmID', JSON.stringify(alarmTime));
     
-    if (this.props.isLTConnected === true) { // increases light value every 2,3s for 15 minutes (only if Arduino module is connected)
-      if (time > (15 * MINUTE)) {
+    if (this.props.isLTConnected === true) { // increases light value for desired time (only if Arduino module is connected)
+      if (time > (this.state.lightTime * MINUTE)) {
         const alarmLightId = BackgroundTimer.setTimeout(() => {
           this.increaseLight();
-        }, (time - (15 * MINUTE)));
+        }, (time - (this.state.lightTime * MINUTE)));
         this.setState({ alarmLightId: alarmLightId });        
       }
     }
@@ -397,7 +451,7 @@ class OfflineLightTherapy extends Component {
     this.setState(clearAlarmLightId);
     
     this.lightValue = 0;
-    this.setValue();     
+    this.setValue(0);     
   }
 
   setActive() {
@@ -406,7 +460,15 @@ class OfflineLightTherapy extends Component {
     AsyncStorage.setItem('OfflineLightTherapy', JSON.stringify(true));
   }
 
-  //Render
+  // Render
+  modalMenuStyle = function(options) {
+    if (this.props.isLTConnected === true) {
+        return {justifyContent: "center", height: 450}
+    } else {
+        return {justifyContent: "center", height: 350}
+    }
+  }
+
   renderVibrationButton() {
     if (this.props.vibrationActive === true) {
       return (
@@ -445,6 +507,38 @@ class OfflineLightTherapy extends Component {
       );   
   }
 
+  renderSliderLight() {
+    if (this.props.isLTConnected === true) {
+      return (
+        <View>
+          <Text style={styles.dialogText}>{I18n.t("illuminationTime")} {this.state.lightTime}{this.minutes(this.state.lightTime)}</Text>
+          <Slider
+            minimumValue={1}
+            maximumValue={30}
+            step={1}
+            value={this.sliderValue(this.state.lightTime)}
+            onValueChange={value => this.setState({ lightTime: value }) }
+            style={{ paddingBottom: 15 }}
+          />
+        </View>
+      );
+    } else return (null);
+  }
+
+  renderAlarmTimeInfo() {
+    if (this.props.isAlarmActive === false) {
+      if (this.props.isLess === true && this.props.isLTConnected) {
+        return (
+          <Text style={styles.alarmSet}>{I18n.t("toShortAlarm")}{this.state.lightTime}{this.minutes(this.state.lightTime)}</Text>
+        );
+      } else return (
+          <Text style={styles.alarmSet}>{this.refreshTimeActivated()}</Text>
+        );
+    } else return (
+        <Text style={styles.alarmSet}>{this.refreshTimeActivated()}</Text>
+      );
+  }
+
   renderSetButton() {
     if (this.props.isSnoozeActive === true) {
       return (
@@ -454,11 +548,17 @@ class OfflineLightTherapy extends Component {
       );
     } else {
       if (this.props.isAlarmActive === false) {
-        return (
-          <TouchableOpacity onPress={this.setAlarm.bind(this)} style={styles.trackContainer}>
-            <Text style={styles.trackSize}>{I18n.t("setButton")}</Text>
-          </TouchableOpacity>
-        );
+        if (this.props.isLess === true && this.props.isLTConnected) {
+          return (
+            <TouchableOpacity onPress={() => null} disabled={true} style={styles.trackContainer}>
+              <Text style={styles.disabledTrackSize}>{I18n.t("setButton")}</Text>
+            </TouchableOpacity>
+          );
+        } else return (
+            <TouchableOpacity onPress={this.setAlarm.bind(this)} style={styles.trackContainer}>
+              <Text style={styles.trackSize}>{I18n.t("setButton")}</Text>
+            </TouchableOpacity>
+          );
       } else return (
           <TouchableOpacity onPress={this.dismissButton.bind(this)} style={styles.trackContainer}> 
             <Text style={styles.trackSize}>{I18n.t("dismiss")}</Text>
@@ -470,7 +570,7 @@ class OfflineLightTherapy extends Component {
   renderDismissSnooze() {
     if (this.props.isSnoozeActive === true) {
       return (
-        <SandboxButton onPress={ () => this.dismissSnooze()}>
+        <SandboxButton onPress={ () => this.dismissSnooze() }>
           <Text style={styles.activeButtonText}>{I18n.t("dismissSnooze")}</Text>
         </SandboxButton>
       );
@@ -485,12 +585,12 @@ class OfflineLightTherapy extends Component {
     if (this.props.isSnoozeActive === true || this.props.isAlarmActive === true) {
       return (
         <AlarmButton onPress={ () => null } disabled={true}>
-          <Text style={styles.alarmSize}>{(this.state.selectedHours) + ":" + (this.state.selectedMinutes)}</Text>
+          <Text style={styles.alarmSize}>{(this.displayHours) + ":" + (this.displayMinutes)}</Text>
         </AlarmButton>
       );
     } else return (
-          <AlarmButton onPress={ () => this.showTimePopup() }>
-            <Text style={styles.alarmSize}>{(this.state.selectedHours) + ":" + (this.state.selectedMinutes)}</Text>
+          <AlarmButton onPress={ () => this.showPickerPopup() }>
+            <Text style={styles.alarmSize}>{(this.displayHours) + ":" + (this.displayMinutes)}</Text>
           </AlarmButton>
         ); 
   }
@@ -552,7 +652,7 @@ class OfflineLightTherapy extends Component {
           <View style={styles.itemsContainer}>
             {this.renderCard()}
             <View style={styles.alarmContainer}> 
-              <Text style={styles.alarmSet}>{this.refreshTimeActivated()}</Text>
+              {this.renderAlarmTimeInfo()}
               {this.renderAlarmButton()}
             </View>
 
@@ -563,38 +663,23 @@ class OfflineLightTherapy extends Component {
           </View>
         </View>
 
-        <PopupDialog
-          ref={(popupDialog) => { this.popupDialog = popupDialog; }}
-          height={350}
-          dismissOnTouchOutside={false}
-          containerStyle={{ elevation: 10 }}
+        <Modal
+          isVisible={this.state.popupPicker}
+          onBackdropPress={() => {null}}
+          style={{ elevation: 10 }}
         >
-          <View>
+          <View style={styles.dialogBackground}>
+            <View style={styles.dialogContainer}>
               <View style={styles.nextAlarmStyle}>
                 <Text style={styles.dialogText}>{this.refreshTime()}</Text>
               </View>
                 <View style={styles.rowPicker}>
-                  <WheelPicker
-                     onItemSelected={ (event)=> this.setState({ index: event.position, selectedHours: event.data }) }
-                     isCurved
-                     isCyclic
-                     renderIndicator
-                     selectedItemPosition={this.state.selectedPickerHour}
-                     indicatorColor={colors.black}
-                     selectedItemTextColor={colors.black}
-                     data={hoursData}
-                     style={styles.wheelPicker}
-                  />
-                  <WheelPicker
-                     onItemSelected={ (event)=> this.setState({ index: event.position, selectedMinutes: event.data }) }
-                     isCurved
-                     isCyclic
-                     renderIndicator
-                     selectedItemPosition={this.state.selectedPickerMinute}
-                     indicatorColor={colors.black}
-                     selectedItemTextColor={colors.black}
-                     data={minutesData}
-                     style={styles.wheelPicker}
+                  <TimePicker 
+                    onTimeSelected={this.onTimeSelected}
+                    hours={hoursData}
+                    minutes={minutesData}
+                    format24={true}
+                    initDate={this.initialTime()}
                   />
                 </View>
                 <View style={styles.pickerButtonContainer}>
@@ -602,34 +687,35 @@ class OfflineLightTherapy extends Component {
                     OK
                   </PickerButton>
                 </View>
+            </View>
           </View>
-        </PopupDialog>
+        </Modal>
 
-        <PopupDialog
-          ref={(popupMenu) => { this.popupMenu = popupMenu; }}
-          height={340}
-          dismissOnTouchOutside={false}
-          containerStyle={{ elevation: 10 }}
+        <Modal
+          isVisible={this.state.popupMenu}
+          onBackdropPress={() => {null}}
+          style={{ elevation: 10 }}
         >
-          <View style={styles.dialogBackground}>
-            <View style={styles.dialogInnerContainer}>
+          <View style={this.modalMenuStyle()}>
+            <View style={styles.dialogContainer}>
               <Text style={styles.dialogTitle}>{I18n.t("settings")}</Text>
               <View style={styles.rowHeader}>
                 <Text style={styles.dialogText}>{I18n.t("vibration")}</Text>
                 {this.renderVibrationButton()}
               </View>
-              <Text style={styles.dialogText}>{I18n.t("setDuration")} {this.state.snoozeTime}{this.minutes()}</Text>
+              <Text style={styles.dialogText}>{I18n.t("setDuration")} {this.state.snoozeTime}{this.minutes(this.state.snoozeTime)}</Text>
               <Slider
                 minimumValue={1}
                 maximumValue={20}
                 step={1}
-                value={this.sliderValue()}
+                value={this.sliderValue(this.state.snoozeTime)}
                 onValueChange={value => this.setState({ snoozeTime: value }) }
               />
               <View style={styles.rowHeaderLow}>
                 <Text style={styles.dialogText}>{I18n.t("lightTherapy")}</Text>
                 {this.renderLightTherapyButton()}
               </View>
+              {this.renderSliderLight()}
               <View style={styles.dialogButtonContainer}>
                 <PickerButton fontSize={25} onPress={this.menuStoreButton.bind(this)}>
                   {I18n.t("closeMenu")}
@@ -637,7 +723,7 @@ class OfflineLightTherapy extends Component {
               </View>
             </View>
           </View>
-        </PopupDialog>
+        </Modal>
       </View>
     );
   }
@@ -769,13 +855,6 @@ const styles = MediaQueryStyleSheet.create(
       color: colors.fern
     },
 
-    dialogBackground: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "stretch",
-      backgroundColor: colors.black
-    },
-
     dialogTitle: {
       textAlign: "center",
       color: colors.black,
@@ -783,10 +862,16 @@ const styles = MediaQueryStyleSheet.create(
       fontSize: 30
     },
 
-    dialogInnerContainer: {
+    dialogBackground: {
+      justifyContent: "center",
+      height: 350
+    },
+
+    dialogContainer: {
       flex: 1,
       alignItems: "stretch",
       backgroundColor: "white",
+      flexDirection: 'column',
       padding: 20
     },
 
@@ -815,11 +900,6 @@ const styles = MediaQueryStyleSheet.create(
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center"
-    },
-
-    wheelPicker: {
-      width: 100,
-      height: 150
     },
 
     nextAlarmStyle: {
@@ -856,7 +936,7 @@ const styles = MediaQueryStyleSheet.create(
       alignSelf: "center",
       fontSize: 40,
       fontFamily: "Roboto-Medium",
-      color: colors.lightGrey
+      color: colors.faintGrey
     },
 
     lightButton: {

@@ -5,9 +5,9 @@ import {
   Text, 
   View, 
   Vibration,
-  AsyncStorage,
   Dimensions 
 } from "react-native";
+import AsyncStorage from '@react-native-community/async-storage';
 import { connect } from "react-redux";
 import { withRouter } from "react-router";
 import { 
@@ -31,13 +31,16 @@ import {
   WIDTH
 } from "../alarmclock/AlarmManager";
 import { MediaQueryStyleSheet } from "react-native-responsive";
+import BluetoothSerial from "react-native-bluetooth-serial";
+import KeepAwake from 'react-native-keep-awake';
 
 function mapStateToProps(state) {
   return {
     powerNap: state.powerNap,
     nightTracker: state.nightTracker,
     offlineLightTherapy: state.offlineLightTherapy,
-    alarmOn: state.alarmOn
+    alarmOn: state.alarmOn,
+    isLTConnected: state.isLTConnected,
   };
 }
 
@@ -66,6 +69,17 @@ class AlarmPopup extends Component {
     this.isAlarmOn = false;
   }
 
+  async setValue(val) {
+    if (this.props.isLTConnected === true) {
+      try {
+        value = "b " + val + "\n";
+        await BluetoothSerial.write(value)
+      } catch (e) {
+        console.log(e)
+      }
+    }
+  }
+
   snoozeButton() {
     this.props.setSnoozeActive(this.props.isSnoozeActive = true);
     AsyncStorage.setItem('SnoozeActive', JSON.stringify(true));
@@ -79,7 +93,7 @@ class AlarmPopup extends Component {
   }
 
   dismiss() {
-    dismissAlarm();  
+    dismissAlarm(); 
     AsyncStorage.setItem('alarmID', JSON.stringify(null));
     if (this.props.NightTracker === true) {
       this.props.setNightTrackerActive(this.props.isNightTrackerActive = false);
@@ -94,6 +108,8 @@ class AlarmPopup extends Component {
         AsyncStorage.setItem('AlarmActive', JSON.stringify(false));
         this.pathOfflineLightTherapy();       
     }
+    KeepAwake.deactivate(); 
+    this.setValue(0);
     minimizeApplication();
   }
 
@@ -118,8 +134,10 @@ class AlarmPopup extends Component {
   renderPopup() {
     if (this.props.alarmOn === true) {
       if (this.isAlarmOn === false) { // this prevents from runing twice
-        activateAlarm();
         this.isAlarmOn = true;
+        activateAlarm();
+        KeepAwake.activate();        
+        this.setValue(255);
       }
       return (
         <View style={styles.container}>

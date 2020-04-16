@@ -1,4 +1,4 @@
-# Muse Sleep Tracker + Arduino Light Therapy (EN/PL/DE) RN 0.57.8 
+# Muse Sleep Tracker + Arduino Light Therapy (EN/PL/DE) RN 0.61.5 
 
 After more than half of the year of inactivity I finally found some time and motivation to make some tweaks and upload app I've been working on. Sadly it's not finished yet and to be honest I don't know when I will start to continue development.
 
@@ -57,10 +57,9 @@ Sleep Tracker and Power Nap use only frontal electrodes, because it's significan
 ## To do
 
 * This is let's say aplha version, so it's more than likely that many things require improvements.
-* Remove bug that terminates app after pressing `OK, IT'S ON` while bluetooth is already enabled (works when bt is disabled and occures only on released apk, debug apk works fine)
 * Finish and correct translations (German especially)/typos etc.
-* Update to newest RN version.
 * Buttons under `List of paired devices:` have to be adjustable to the length of paired device's names (see screenshot)
+* Figure out why launcher keeps asking for default app
 
 ## Setup
 

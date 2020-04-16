@@ -7,11 +7,12 @@ import {
   View,
   NativeModules,
   NativeEventEmitter,
-  Slider, 
-  AsyncStorage,
   TouchableOpacity,
   ActivityIndicator
 } from "react-native";
+import Modal from "react-native-modal";
+import AsyncStorage from '@react-native-community/async-storage';
+import Slider from '@react-native-community/slider';
 import { connect } from "react-redux";
 import { 
   setNightTrackerActive, 
@@ -21,7 +22,7 @@ import {
   setPowerNap, 
   setOfflineLightTherapy,
   setVibration,
-  setLessThanHour 
+  setLess 
 } from "../redux/actions";
 import config from "../redux/config";
 import SandboxButton from "../components/SandboxButton";
@@ -47,9 +48,8 @@ import {
 import Classifier from "../native/Classifier.js";
 import { MediaQueryStyleSheet } from "react-native-responsive";
 import BluetoothSerial from "react-native-bluetooth-serial";
-import PopupDialog from 'react-native-popup-dialog';
 import BackgroundTimer from "react-native-background-timer";
-import { WheelPicker } from 'react-native-wheel-picker-android';
+import { TimePicker } from 'react-native-wheel-picker-android'
 import AndroidAlarms from 'react-native-android-alarms';
 
 function mapStateToProps(state) {
@@ -61,7 +61,7 @@ function mapStateToProps(state) {
     isSnoozeActive: state.isSnoozeActive,
     isLTConnected: state.isLTConnected,
     vibrationActive: state.vibrationActive,
-    isLessThanHour: state.isLessThanHour,
+    isLess: state.isLess,
     refresh: state.refresh
   };
 }
@@ -76,7 +76,7 @@ function mapDispatchToProps(dispatch) {
       setPowerNap, 
       setOfflineLightTherapy,
       setVibration,
-      setLessThanHour
+      setLess
     },
     dispatch
   );
@@ -124,33 +124,28 @@ class NightTracker extends Component {
     super(props);
     this.predictSubscription = {};
     this.trackerScore = {};
+    this.evaluationCounter = {};
+    this.threshold = 410;
     this.lightValue = {};
+    this.selectedHours = 9;
+    this.selectedMinutes = 0;
+    this.displayMinutes = (this.selectedMinutes < 10 ? "0" + this.selectedMinutes : this.selectedMinutes);
+    this.displayHours = (this.selectedHours < 10 ? "0" + this.selectedHours : this.selectedHours);
 
-    // Initialize States
     this.state = {
-      selectedHours: "09",
-      selectedMinutes: "00",
-      selectedPickerHour: 9,
-      selectedPickerMinute: 0,
       snoozeTime: 10,
+      lightTime: 15,
+      popupMenu: false,
+      popupPicker: false,
+      lightIntensity: 100,
       isAlarmSet: false,
-      evaluation1Active: false,
-      evaluation2Active: false,
-      evaluation3Active: false,
-      evaluation4Active: false,
-      evaluation5Active: false,
-      evaluation6Active: false,
-      evaluation7Active: false,
-      evaluation8Active: false,
-      evaluation9Active: false,
-      evaluation10Active: false,
     };
   }
 
   componentDidMount() {
     Classifier.startClassifier(this.props.notchFrequency);
     Classifier.startNoiseListener();  
-    this.loadAlarm(); 
+    this.loadAsyncStorage(); 
     this.setSnoozeAlarm();
     this.props.setNightTracker(this.props.nightTracker = false);
     this.props.setPowerNap(this.props.powerNap = false);
@@ -173,27 +168,27 @@ class NightTracker extends Component {
     this.setState(clearCheckId);
   }
 
-  //AsyncStorage & Snooze
+  // AsyncStorage & Snooze
   storeTimeButton() {
     this.storeAlarm();
     this.checkTime();
-    this.popupDialog.dismiss();
+    this.setState({ popupPicker: false });
     this.props.setMenuInvisible(this.props.isMenuInvisible = false);
   }
 
   menuStoreButton() {
     this.storeFunction();
-    this.popupMenu.dismiss();
+    this.setState({ popupMenu: false });
     this.props.setMenuInvisible(this.props.isMenuInvisible = false); 
   }
 
   showTimePopup() {
-    this.popupDialog.show();
+    this.setState({ popupPicker: true });
     this.props.setMenuInvisible(this.props.isMenuInvisible = true);
   }
 
   showMenuPopup() {
-    this.popupMenu.show();
+    this.setState({ popupMenu: true });
     this.props.setMenuInvisible(this.props.isMenuInvisible = true);
   }
 
@@ -206,35 +201,46 @@ class NightTracker extends Component {
   }
 
   storeFunction() {
-    AsyncStorage.setItem('snoozeTimeObj', JSON.stringify(Number(this.state.snoozeTime)));
     if (this.props.vibrationActive === true) {
       AsyncStorage.setItem('vibrationObj', JSON.stringify(true));
     } else {
       AsyncStorage.setItem('vibrationObj', JSON.stringify(false));
     }
+    AsyncStorage.setItem('snoozeTimeObj', JSON.stringify(Number(this.state.snoozeTime)));
+    AsyncStorage.setItem('lightTimeNightObj', JSON.stringify(Number(this.state.lightTime)));
   }
 
   storeAlarm() {
-    AsyncStorage.setItem('hoursObj', JSON.stringify(Number(this.state.selectedHours)));
-    AsyncStorage.setItem('minutesObj', JSON.stringify(Number(this.state.selectedMinutes)));
+    AsyncStorage.setItem('hoursObj', JSON.stringify(Number(this.selectedHours)));
+    AsyncStorage.setItem('minutesObj', JSON.stringify(Number(this.selectedMinutes)));
   }
 
-  loadAlarm() {
+  loadAsyncStorage() {
     AsyncStorage.getItem('hoursObj').then((result) => {
         if (result !== null) {
-          this.setState({ selectedHours: (result < 10 ? "0" + result : result) });
-          this.setState({ selectedPickerHour: Number(result) });
+          this.selectedHours = Number(result);
+          this.displayHours = (result < 10 ? "0" + result : result);
         }
     });
     AsyncStorage.getItem('minutesObj').then((result) => {
         if (result !== null) {
-          this.setState({ selectedMinutes: (result < 10 ? "0" + result : result) });
-          this.setState({ selectedPickerMinute: Number(result) });
+          this.selectedMinutes = Number(result);
+          this.displayMinutes = (result < 10 ? "0" + result : result);
         }
     });
     AsyncStorage.getItem('snoozeTimeObj').then((result) => {
         if (result !== null) {
           this.setState({ snoozeTime: Number(result) });
+        }
+    });
+    AsyncStorage.getItem('lightIntensityObj').then((result) => {
+        if (result !== null) {
+          this.setState({ lightIntensity: Number(result) });
+        }
+    });
+    AsyncStorage.getItem('lightTimeNightObj').then((result) => {
+        if (result !== null) {
+          this.setState({ lightTime: Number(result) });
         }
     });
   }
@@ -267,9 +273,9 @@ class NightTracker extends Component {
     this.dismissButton();
   }
 
-  sliderValue() {
-    return Number(this.state.snoozeTime);
-  }
+  sliderValue(state) {
+    return Number(state);
+  }  
 
   minutes() {
     var absoluteMinutes = this.state.snoozeTime
@@ -286,10 +292,10 @@ class NightTracker extends Component {
     };
   }
 
-  //Alarm
+  // Alarm
   getTime() {
     var selectedTimeInMS, currentTimeInMS, mathAlarm;
-    selectedTimeInMS = ((this.state.selectedHours * HOUR) + (this.state.selectedMinutes * MINUTE));
+    selectedTimeInMS = ((this.selectedHours * HOUR) + (this.selectedMinutes * MINUTE));
     currentTimeInMS =  currentTime();
 
     if(selectedTimeInMS > currentTimeInMS) {
@@ -298,7 +304,7 @@ class NightTracker extends Component {
       mathAlarm = ((DAY - currentTimeInMS) + selectedTimeInMS);
     };
 
-    return mathAlarm; // returns time to next alarm in MS
+    return mathAlarm; // returns 'remaining time to an alarm' in MS
   }
 
   readableTime() {
@@ -315,13 +321,27 @@ class NightTracker extends Component {
 
   checkTime() {
     if (this.getTime() <= HOUR) {
-      this.props.setLessThanHour(this.props.isLessThanHour = true);
+      this.props.setLess(this.props.isLess = true);
     } else {
-        this.props.setLessThanHour(this.props.isLessThanHour = false); 
+        this.props.setLess(this.props.isLess = false); 
     }
   }
 
-  //Tracker
+  initialTime() {
+    return ((this.selectedHours * HOUR) + (this.selectedMinutes * MINUTE) - HOUR);
+  }
+
+  onTimeSelected = date => {
+    this.selectedHours = date.getHours();
+    this.selectedMinutes = date.getMinutes();
+    this.displayMinutes = (this.selectedMinutes < 10 ? "0" + this.selectedMinutes : this.selectedMinutes);
+    this.displayHours = (this.selectedHours < 10 ? "0" + this.selectedHours : this.selectedHours);
+    this.initialTime();
+  }
+
+  // Tracker
+  // Checks if wave score is above desired threshold.
+  // If it is for consecutive 10 seconds - an alarm is being triggered.
   setTracker() {
     var wakeTime = this.getTime();
 
@@ -344,181 +364,65 @@ class NightTracker extends Component {
   startTrackerA() {
     Classifier.startTracking(); 
     this.setScore();
-    this.setState({ evaluation1Active: true });
   }
 
   startTrackerB() {
     const timerTrackId = BackgroundTimer.setInterval(() => {
-      this.start1Evaluation();
-      console.log("Night evaluation 1 started");
+      this.startFirstEvaluation();
     }, 1000);
     this.setState({ timerTrackId: timerTrackId });   
   }
 
-  start1Evaluation() {
-    if (this.state.evaluation1Active === true)
-      if (this.trackerScore >= 410) {
-        this.dismissTracker();
-        this.setState({ evaluation1Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation2Active: true });
-          this.start2Evaluation();
-          console.log("Night evaluation 2 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        return null;
-        console.log("Night tracker repeated after 1");
-      }
+  startFirstEvaluation() {
+    this.evaluationCounter = 1;
+    console.log("Night evaluation " + this.evaluationCounter + " started");
+    if (this.trackerScore >= this.threshold) {
+      this.dismissTrackerB();
+      BackgroundTimer.setTimeout(() => {
+        this.startEvaluation();
+        console.log("Night evaluation " + this.evaluationCounter + " passed");
+      }, 1000);
+    } else if (this.trackerScore < this.threshold) {
+      return null;
+    }
   }
 
-  start2Evaluation() {
-    if (this.state.evaluation2Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation2Active: false });
+  startEvaluation() {
+    this.evaluationCounter = this.evaluationCounter + 1;
+    console.log("Night evaluation" + this.evaluationCounter + "started");
+    if (this.evaluationCounter <= 9) {
+      if (this.trackerScore >= this.threshold) {
         BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation3Active: true });
-          this.start3Evaluation();
-          console.log("Night evaluation 3 started");
+          this.startEvaluation();
+          console.log("Night evaluation" + this.evaluationCounter + "passed");
         }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation2Active: false });
+      } else if (this.trackerScore < this.threshold) {
         this.startTrackerB();
-        console.log("Night tracker repeated after 2");
+        console.log("Night tracker repeated after evaluation" + this.evaluationCounter); 
       }
+    } else if (this.evaluationCounter > 9) {
+        this.startLastEvaluation();
+    }
   }
 
-  start3Evaluation() {
-    if (this.state.evaluation3Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation3Active: false });
-        BackgroundTimer.setTimeout(() => {         
-          this.setState({ evaluation4Active: true });
-          this.start4Evaluation();
-          console.log("Night evaluation 4 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation3Active: false });
-        this.startTrackerB();
-        console.log("Night tracker repeated after 3");
-      }
-  }
-
-  start4Evaluation() {
-    if (this.state.evaluation4Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation4Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation5Active: true });
-          this.start5Evaluation();
-          console.log("Night evaluation 5 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation4Active: false });
-        this.startTrackerB();
-        console.log("Night tracker repeated after 4");
-      }
-  }
-
-  start5Evaluation() {
-    if (this.state.evaluation5Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation5Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation6Active: true });
-          this.start6Evaluation();
-          console.log("Night evaluation 6 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation5Active: false });
-        this.startTrackerB();
-        console.log("Night tracker repeated after 5");
-      }
-  }
-
-  start6Evaluation() {
-    if (this.state.evaluation6Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation6Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation7Active: true });
-          this.start7Evaluation();
-          console.log("Night evaluation 7 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation6Active: false });
-        this.startTrackerB();
-        console.log("Night tracker repeated after 6");
-      }
-  }
-
-  start7Evaluation() {
-    if (this.state.evaluation7Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation7Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation8Active: true });
-          this.start8Evaluation();
-          console.log("Night evaluation 8 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation7Active: false });
-        this.startTrackerB();
-        console.log("Night tracker repeated after 7");
-      }
-  }
-
-  start8Evaluation() {
-    if (this.state.evaluation8Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation8Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation9Active: true });
-          this.start9Evaluation();
-          console.log("Night evaluation 9 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation8Active: false });
-        this.startTrackerB();
-        console.log("Night tracker repeated after 8");
-      }
-  }
-
-  start9Evaluation() {
-    if (this.state.evaluation9Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation9Active: false });
-        BackgroundTimer.setTimeout(() => {
-          this.setState({ evaluation10Active: true });
-          this.start10Evaluation();
-          console.log("Night evaluation 10 started");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation9Active: false });
-        this.startTrackerB();
-        console.log("Night tracker repeated after 9");
-      }
-  }
-
-  start10Evaluation() {
-    if (this.state.evaluation10Active === true)
-      if (this.trackerScore >= 410) {
-        this.setState({ evaluation10Active: false });
-        BackgroundTimer.setTimeout(() => {
-          Classifier.stopTracking(); 
-          this.setAlarm();
-          console.log("Night alarm set");
-        }, 1000);
-      } else if (this.trackerScore < 410) {
-        this.setState({ evaluation10Active: false });
-        this.startTrackerB();
-        console.log("Night tracker repeated after 10");
-      }
+  startLastEvaluation() {
+    this.evaluationCounter = 0;
+    if (this.trackerScore >= this.threshold) {
+      BackgroundTimer.setTimeout(() => {
+        Classifier.stopTracking(); 
+        this.setAlarm();
+        console.log("Night alarm set");
+      }, 1000);
+    } else if (this.trackerScore < this.threshold) {
+      this.startTrackerB();
+      console.log("Night tracker repeated after evaluation" + this.evaluationCounter); 
+    }
   }
 
   setAlarm() {
     this.setState({ isAlarmSet: true });
 
-    time = 15 * MINUTE;
+    time = (15 * MINUTE) + 1000;
     alarmTime = Number(moment()) + time;
     
     AndroidAlarms.setAlarm(alarmTime, alarmTime.valueOf(), false);
@@ -541,21 +445,10 @@ class NightTracker extends Component {
     AsyncStorage.setItem('NightTracker', JSON.stringify(false)); 
     this.willUnmountFunction();
     AsyncStorage.setItem('alarmID', JSON.stringify(null));
-    this.dismissTracker();      
+    this.dismissTrackerB();      
   }
 
-  willUnmountFunction() {
-    this.setState({ evaluation1Active: false });
-    this.setState({ evaluation2Active: false });
-    this.setState({ evaluation3Active: false });
-    this.setState({ evaluation4Active: false });
-    this.setState({ evaluation5Active: false });
-    this.setState({ evaluation6Active: false });
-    this.setState({ evaluation7Active: false });
-    this.setState({ evaluation8Active: false });
-    this.setState({ evaluation9Active: false });
-    this.setState({ evaluation10Active: false });
-    
+  willUnmountFunction() {   
     Classifier.stopTracking();
     this.removeListenerFunc();
     
@@ -572,7 +465,7 @@ class NightTracker extends Component {
     this.setState(clearAlarmLightId);  
 
     this.lightValue = 0;
-    this.setValue();   
+    this.setValue(0);   
   }
 
   setActive() {
@@ -581,7 +474,7 @@ class NightTracker extends Component {
     AsyncStorage.setItem('NightTracker', JSON.stringify(true));
   }
 
-  dismissTracker() {
+  dismissTrackerB() {
     const timerTrackId = this.state.timerTrackId;
     const clearTrackId = BackgroundTimer.clearInterval(timerTrackId);
     this.setState(clearTrackId);   
@@ -605,49 +498,50 @@ class NightTracker extends Component {
     this.predictSubscription = scoreListener.removeListener();
   }
 
-  //Light Therapy
+  // Light Therapy
   increaseLight() {
     this.lightValue = 0;
+    var val = (255 * this.state.lightIntensity) / 100;
+    var interval = (this.state.lightTime * MINUTE) / val;
     const lightId = BackgroundTimer.setInterval(() => {
-      if (this.lightValue < 255) {
+      if (this.lightValue < val.toFixed()) {
         this.lightValue = this.lightValue + 1;
-        this.setValue();
+        this.setValue(this.lightValue);
       } 
-    }, 2300);
+    }, interval);
     this.setState({ lightId: lightId });   
   }
 
-  setValue = async value => {
+  async setValue(val) {
     try {
-      value = "b " + this.lightValue + "\n";
-      await BluetoothSerial.write(value)
+      value = "b " + val + "\n";
+      await BluetoothSerial.write(value);
     } catch (e) {
-      console.log(e)
+      console.log(e);
     }
   }
 
   pathLight() {
     this.storeFunction();
     this.props.setMenuInvisible(this.props.isMenuInvisible = true);
-    this.props.history.push("/lightTherapy");
+    this.props.history.push("/btModule");
   }
 
-  //Popup disconnected
-  show() {
-    BackgroundTimer.setTimeout(() => {
-      this.popupDisconnected.show();
-      this.props.setMenuInvisible(this.props.isMenuInvisible = false);
-      if (this.props.isNightTrackerActive === true) {
-        this.dismissSnooze();
-      }
-    }, 1);        
-  }
-
+  // Popup disconnected
   pathOne() {
+    this.dismissButton();
     this.props.history.push("/connectorOne");
   }
 
-  //Render
+  // Render
+  modalMenuStyle = function(options) {
+    if (this.props.isLTConnected === true) {
+        return {justifyContent: "center", height: 450}
+    } else {
+        return {justifyContent: "center", height: 350}
+    }
+  }
+
   renderVibrationButton() {
     if (this.props.vibrationActive === true) {
       return (
@@ -698,8 +592,26 @@ class NightTracker extends Component {
       );   
   }
 
+  renderSliderLight() {
+    if (this.props.isLTConnected === true) {
+      return (
+        <View>
+          <Text style={styles.dialogText}>{I18n.t("illuminationTime")} {this.state.lightTime}{this.minutes(this.state.lightTime)}</Text>
+          <Slider
+            minimumValue={1}
+            maximumValue={15}
+            step={1}
+            value={this.sliderValue(this.state.lightTime)}
+            onValueChange={value => this.setState({ lightTime: value }) }
+            style={{ paddingBottom: 15 }}
+          />
+        </View>
+      );
+    } else return (null);
+  }
+
   renderTrackButton() {
-    if (this.props.isLessThanHour === true || this.props.isSnoozeActive === true) {
+    if (this.props.isLess === true || this.props.isSnoozeActive === true) {
       return (
         <TouchableOpacity onPress={() => null} disabled={true} style={styles.trackContainer}>
           <Text style={styles.disabledTrackSize}>{I18n.t("track")}</Text>
@@ -742,12 +654,12 @@ class NightTracker extends Component {
     if (this.props.isSnoozeActive === true || this.props.isNightTrackerActive === true) {
       return (
         <AlarmButton onPress={ () => null } disabled={true}>
-          <Text style={styles.alarmSize}>{(this.state.selectedHours) + ":" + (this.state.selectedMinutes)}</Text>
+          <Text style={styles.alarmSize}>{(this.displayHours) + ":" + (this.displayMinutes)}</Text>
         </AlarmButton>
       );
     } else return (
           <AlarmButton onPress={ () => this.showTimePopup() }>
-            <Text style={styles.alarmSize}>{(this.state.selectedHours) + ":" + (this.state.selectedMinutes)}</Text>
+            <Text style={styles.alarmSize}>{(this.displayHours) + ":" + (this.displayMinutes)}</Text>
           </AlarmButton>
         ); 
   }
@@ -767,9 +679,6 @@ class NightTracker extends Component {
   }
 
   render() {
-    if (this.props.connectionStatus === config.connectionStatus.DISCONNECTED) {
-      this.show(); 
-    }
     return (
       <View style={styles.container}>
         <View style={styles.rowHeader}>
@@ -793,7 +702,7 @@ class NightTracker extends Component {
                   </Text>}
             </View>
             <View style={styles.alarmContainer}>
-              {this.props.isLessThanHour
+              {this.props.isLess
                 ? <Text style={styles.alarmSet}>{I18n.t("toShort")}</Text>
                      
                 : <Text style={styles.alarmSet}>{I18n.t("wakeTime")}</Text>} 
@@ -809,38 +718,23 @@ class NightTracker extends Component {
           </View> 
         </View>
 
-        <PopupDialog
-          ref={(popupDialog) => { this.popupDialog = popupDialog; }}
-          height={350}
-          dismissOnTouchOutside={false}
-          containerStyle={{ elevation: 10 }}
+        <Modal
+          isVisible={this.state.popupPicker}
+          onBackdropPress={() => {null}}
+          style={{ elevation: 10 }}
         >
-          <View>
+          <View style={styles.dialogBackground}>
+            <View style={styles.dialogContainer}>
               <View style={styles.nextAlarmStyle}>
                 <Text style={styles.dialogText}>{this.refreshTime()}</Text>
               </View>
                 <View style={styles.rowPicker}>
-                  <WheelPicker
-                     onItemSelected={ (event)=> this.setState({ index: event.position, selectedHours: event.data }) }
-                     isCurved
-                     isCyclic
-                     renderIndicator
-                     selectedItemPosition={this.state.selectedPickerHour}
-                     indicatorColor={colors.black}
-                     selectedItemTextColor={colors.black}
-                     data={hoursData}
-                     style={styles.wheelPicker}
-                  />
-                  <WheelPicker
-                     onItemSelected={ (event)=> this.setState({ index: event.position, selectedMinutes: event.data }) }
-                     isCurved
-                     isCyclic
-                     renderIndicator
-                     selectedItemPosition={this.state.selectedPickerMinute}
-                     indicatorColor={colors.black}
-                     selectedItemTextColor={colors.black}
-                     data={minutesData}
-                     style={styles.wheelPicker}
+                  <TimePicker 
+                    onTimeSelected={this.onTimeSelected}
+                    hours={hoursData}
+                    minutes={minutesData}
+                    format24={true}
+                    initDate={this.initialTime()}
                   />
                 </View>
                 <View style={styles.pickerButtonContainer}>
@@ -848,34 +742,35 @@ class NightTracker extends Component {
                     OK
                   </PickerButton>
                 </View>
+            </View>
           </View>
-        </PopupDialog>
+        </Modal>
 
-        <PopupDialog
-          ref={(popupMenu) => { this.popupMenu = popupMenu; }}
-          height={340}
-          dismissOnTouchOutside={false}
-          containerStyle={{ elevation: 10 }}
+        <Modal
+          isVisible={this.state.popupMenu}
+          onBackdropPress={() => {null}}
+          style={{ elevation: 10 }}
         >
-          <View style={styles.dialogBackground}>
-            <View style={styles.dialogInnerContainer}>
+          <View style={this.modalMenuStyle()}>
+            <View style={styles.dialogContainer}>
               <Text style={styles.dialogTitle}>{I18n.t("settings")}</Text>
               <View style={styles.rowHeader}>
                 <Text style={styles.dialogText}>{I18n.t("vibration")}</Text>
                 {this.renderVibrationButton()}
               </View>
-              <Text style={styles.dialogText}>{I18n.t("setDuration")} {this.state.snoozeTime}{this.minutes()}</Text>
+              <Text style={styles.dialogText}>{I18n.t("setDuration")} {this.state.snoozeTime}{this.minutes(this.state.snoozeTime)}</Text>
               <Slider
                 minimumValue={1}
                 maximumValue={20}
                 step={1}
-                value={this.sliderValue()}
+                value={this.sliderValue(this.state.snoozeTime)}
                 onValueChange={value => this.setState({ snoozeTime: value }) }
               />
               <View style={styles.rowHeaderLow}>
                 <Text style={styles.dialogText}>{I18n.t("lightTherapy")}</Text>
                 {this.renderLightTherapyButton()}
               </View>
+              {this.renderSliderLight()}
               <View style={styles.dialogButtonContainer}>
                 <PickerButton fontSize={25} onPress={this.menuStoreButton.bind(this)}>
                   {I18n.t("closeMenu")}
@@ -883,26 +778,25 @@ class NightTracker extends Component {
               </View>
             </View>
           </View>
-        </PopupDialog>
+        </Modal>
 
-        <PopupDialog
-          ref={(popupDisconnected) => { this.popupDisconnected = popupDisconnected; }}
-          height={230}
-          dismissOnTouchOutside={false}
-          containerStyle={{ elevation: 10 }}
+        <Modal
+          isVisible={this.props.connectionStatus === config.connectionStatus.DISCONNECTED}
+          onBackdropPress={() => {null}}
+          style={{ elevation: 10 }}
         >
-          <View style={styles.dialogBackground}>
-            <View style={styles.dialogInnerContainer}>
+          <View style={styles.dialogDisconnected}>
+            <View style={styles.dialogContainer}>
               <Text style={styles.disconnectedTitle}>{I18n.t("disconnected")}</Text>
               <Text style={styles.dialogText}>{I18n.t("reconnect")}</Text>
               <View style={styles.dialogButtonContainer}>
-                <PickerButton fontSize={25} onPress={this.pathOne.bind(this)}>
-                  {I18n.t("close")}
+                <PickerButton onPress={this.pathOne.bind(this)}>
+                  <Text style={styles.buttonText}>{I18n.t("close")}</Text>
                 </PickerButton>
               </View>
             </View>
           </View>
-        </PopupDialog>
+        </Modal>
 
       </View>
     );
@@ -1039,13 +933,6 @@ const styles = MediaQueryStyleSheet.create(
       color: colors.fern
     },
 
-    dialogBackground: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "stretch",
-      backgroundColor: colors.black
-    },
-
     dialogTitle: {
       textAlign: "center",
       color: colors.black,
@@ -1053,10 +940,21 @@ const styles = MediaQueryStyleSheet.create(
       fontSize: 30
     },
 
-    dialogInnerContainer: {
+    dialogBackground: {
+      justifyContent: "center",
+      height: 350
+    },
+
+    dialogDisconnected: {
+      justifyContent: "center",
+      height: 200
+    },
+
+    dialogContainer: {
       flex: 1,
       alignItems: "stretch",
       backgroundColor: "white",
+      flexDirection: 'column',
       padding: 20
     },
 
